@@ -1,0 +1,13 @@
+---
+title: 'Stacks Pay: The Specification'
+description: 'The specification'
+---
+
+### Terminology
+
+- **Payment Request**: A request for payment that includes details such as the recipient, amount, token type, and a unique identifier (`spId`).
+- **Operation**: Specifies the type of action to be performed (e.g., `pay`, `donate`, `subscribe`).
+- **TokenType**: Enumerated values of tokens supported in Stacks Pay. Must be one of:
+  - `STX`
+  - `SIP10`
+- **spId**: A unique identifier associated with a payment request to track it.
