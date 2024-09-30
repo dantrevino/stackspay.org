@@ -1,5 +1,6 @@
 {
-  "name": "",
+  "name": "stackspay",
+  "author": "Dan Trevino <dantrevino@gmail.com>",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
