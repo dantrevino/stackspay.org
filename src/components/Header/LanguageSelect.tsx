@@ -27,11 +27,14 @@ const LanguageSelect: FunctionComponent<{ lang: string }> = ({ lang }) => {
       <select
         className="language-select"
         value={lang}
-        onChange={(e) => {
-          const newLang = e.target.value
-          let actualDest = window.location.pathname.replace(langPathRegex, '/')
-          if (actualDest == '/') actualDest = `/introduction`
-          window.location.pathname = '/' + newLang + actualDest
+        onChange={(e: Event) => {
+          const target = e.target as HTMLSelectElement | null;
+            if (target) {
+              const newLang = target.value;
+              let actualDest = window.location.pathname.replace(langPathRegex, '/')
+              if (actualDest == '/') actualDest = `/introduction`
+              window.location.pathname = '/' + newLang + actualDest
+            }
         }}
       >
         {Object.entries(KNOWN_LANGUAGES).map(([key, value]) => {
