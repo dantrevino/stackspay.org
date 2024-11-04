@@ -11,3 +11,48 @@ description: 'The specification'
   - `STX`
   - `SIP10`
 - **spId**: A unique identifier associated with a payment request to track it.
+
+## Abstract
+
+**Stacks Pay** is a proposed payment request standard for the Stacks blockchain. The standard aims to enable secure, efficient, and flexible payment interactions between payers and recipients by defining a unified method for creating and processing payment requests. By standardizing the structure and parameters of payment requests, Stacks Pay ensures interoperability between wallets and applications within the Stacks ecosystem.
+
+## Introduction
+
+As the Stacks ecosystem grows, there's an increasing demand for a standardized method to request and process payments. Currently, there is no unified standard for creating and handling payment requests on the Stacks blockchain, which leads to fragmentation and inconsistent user experiences. Existing payment request standards in other ecosystems offer features like reusable payment requests and enhanced security, but no such standard exists for Stacks.
+
+**Stacks Pay** addresses this gap by introducing a payment request standard tailored specifically for the Stacks blockchain. The standard simplifies the process of sending and receiving payments, enhances interoperability among wallets and applications, and increases security by providing mechanisms to tie transactions back to payment requests.
+
+# Specification
+
+## Overview
+
+Stacks Pay defines a standardized method for creating and processing payment requests on the Stacks blockchain using a URL scheme to encode necessary payment information. This allows wallets and applications to parse and handle payments consistently.
+
+## Payment Parameters
+
+A Stacks Pay payment request **MUST** include the following parameters:
+
+- **`recipient`**: The Stacks address of the payment recipient.
+- **`token`**: The type of token used for payment. This **MUST** be either `'STX'` or `'SIP10'`.
+- **`description`**: A description providing context for the payment.
+- **`spId`**: A unique identifier for the payment request (Stacks Pay ID).
+
+Optional parameters:
+
+- **`amount`**: The amount to be paid, in micro-STX or token units. If not provided, the payer **MUST** enter the amount.
+- **`contractAddress`**: The contract principal and contract name, separated by a '.'. This field is **REQUIRED** if `token` is `'SIP10'`.
+- **`functionName`**: The contract function name (e.g., `transfer`, `mint`). This field is **REQUIRED** if `token` is `'SIP10'`.
+
+## Token Types
+
+The `token` parameter indicates the type of token for the payment and **MUST** be one of:
+
+- `'STX'`: For payments using the native STX token.
+- `'SIP10'`: For payments using SIP-010 compliant fungible tokens.
+
+## URL Scheme
+
+The Stacks Pay URL scheme **MUST** use the custom protocol `stxpay://`, followed by an `operation` and query parameters encoding the payment details.
+
+**Format:**
+
