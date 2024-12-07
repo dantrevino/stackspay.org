@@ -1,13 +1,13 @@
 ---
-title: 'Wie man Stacks Pay als Händler nutzt'
-description: 'Stacks Pay ermöglicht es Händlern, Zahlungen in Kryptowährung schnell und sicher auf der Stacks-Blockchain zu akzeptieren.'
+title: 'Wie man StacksPay als Händler nutzt'
+description: 'StacksPay ermöglicht es Händlern, Zahlungen in Kryptowährung schnell und sicher auf der Stacks-Blockchain zu akzeptieren.'
 ---
 
 ### **Erste Schritte**
 
-Stacks Pay ermöglicht es Händlern, Zahlungen in Kryptowährung schnell und sicher auf der Stacks-Blockchain zu akzeptieren. Egal, ob Sie Produkte verkaufen, Spenden annehmen oder Kunden Rechnungen stellen, Stacks Pay generiert codierte Zahlungslinks oder QR-Codes, die Ihre Kunden verwenden können, um Zahlungen an Ihre Stacks-Wallet zu senden.
+StacksPay ermöglicht es Händlern, Zahlungen in Kryptowährung schnell und sicher auf der Stacks-Blockchain zu akzeptieren. Egal, ob Sie Produkte verkaufen, Spenden annehmen oder Kunden Rechnungen stellen, StacksPay generiert codierte Zahlungslinks oder QR-Codes, die Ihre Kunden verwenden können, um Zahlungen an Ihre Stacks-Wallet zu senden.
 
-Zahlungslinks können über unser SDK oder API generiert werden (Standorte werden später hinzugefügt). Während **Boom Wallet** das Generieren von Stacks Pay-Links unterstützt, kann jede Stacks-kompatible Wallet (wie **Xverse** oder **Leather**) verwendet werden, um Zahlungen zu empfangen. Außerdem kann jeder Händler, der Stacks Pay akzeptiert, es in seinen Zahlungsablauf integrieren.
+Zahlungslinks können über unser SDK oder API generiert werden (Standorte werden später hinzugefügt). Während **Boom Wallet** das Generieren von StacksPay-Links unterstützt, kann jede Stacks-kompatible Wallet (wie **Xverse** oder **Leather**) verwendet werden, um Zahlungen zu empfangen. Außerdem kann jeder Händler, der StacksPay akzeptiert, es in seinen Zahlungsablauf integrieren.
 
 ### **Schritt 1: Richten Sie Ihre Stacks Wallet ein**
 
@@ -21,9 +21,9 @@ Bevor Sie Zahlungen akzeptieren können, benötigen Sie eine Stacks-Wallet, um G
 
 ### **Schritt 2: Erstellen Sie eine Zahlungsanforderung**
 
-Um Zahlungen zu akzeptieren, müssen Sie einen Stacks Pay-Zahlungslink generieren. Diese codierten Zahlungslinks können mit unserem SDK oder API generiert werden (Standorte werden später hinzugefügt). Während **Boom Wallet** das Generieren von Stacks Pay-Links unterstützt, können Händler Stacks Pay in ihre eigenen Systeme integrieren.
+Um Zahlungen zu akzeptieren, müssen Sie einen StacksPay-Zahlungslink generieren. Diese codierten Zahlungslinks können mit unserem SDK oder API generiert werden (Standorte werden später hinzugefügt). Während **Boom Wallet** das Generieren von StacksPay-Links unterstützt, können Händler StacksPay in ihre eigenen Systeme integrieren.
 
-So erstellen Sie einen Stacks Pay-Zahlungslink:
+So erstellen Sie einen StacksPay-Zahlungslink:
 
 1. **Verwenden Sie das SDK oder die API**:
    - Verwenden Sie unser SDK oder die API, um einen Zahlungslink zu generieren, indem Sie die erforderlichen Zahlungsdetails angeben.
@@ -31,13 +31,13 @@ So erstellen Sie einen Stacks Pay-Zahlungslink:
      - **Empfänger**: BNS-Name oder Stacks-Adresse, an die die Zahlung gesendet wird.
      - **Betrag**: Der feste Betrag (in STX oder Token), wenn Sie ein Produkt verkaufen. Für Spenden oder offene Zahlungen können Sie dieses Feld leer lassen, damit der Kunde den gewünschten Betrag eingeben kann.
      - **Beschreibung**: Eine kurze Beschreibung der Zahlung (z. B. „Zahlung für Beratungsdienstleistungen“ oder „Spende zur Unterstützung unserer gemeinnützigen Organisation“).
-     - **Stacks Pay ID (spId)**: Standardmäßig wird eine `spId` automatisch generiert. Sie können jedoch eine benutzerdefinierte `spId` angeben, um die Zahlung mit Ihren internen Bestellnummern oder Arbeitsabläufen zu verknüpfen.
+     - **StacksPay ID (spId)**: Standardmäßig wird eine `spId` automatisch generiert. Sie können jedoch eine benutzerdefinierte `spId` angeben, um die Zahlung mit Ihren internen Bestellnummern oder Arbeitsabläufen zu verknüpfen.
 
    **Hinweis**: Dokumentation und Ressourcen für das SDK und die API werden in Kürze verfügbar sein. Bitte schauen Sie später erneut vorbei.
 
 2. **Generieren Sie den codierten Zahlungslink**:
    - Das SDK oder die API erstellt basierend auf den bereitgestellten Informationen einen Bech32m-codierten Zahlungslink.
-   - **Hinweis**: Stacks Pay-URLs sind immer codiert, um Kompatibilität, Sicherheit und Fehlererkennung zu gewährleisten. Der codierte Link sieht ungefähr so aus:
+   - **Hinweis**: StacksPay-URLs sind immer codiert, um Kompatibilität, Sicherheit und Fehlererkennung zu gewährleisten. Der codierte Link sieht ungefähr so aus:
      ```
      stxpay1qpz9eyarqj8guvs49epj7wp6rszpe6sczxsrdsgx5uqzgkx5fw
      ```
@@ -48,7 +48,7 @@ So erstellen Sie einen Stacks Pay-Zahlungslink:
 
 ### **Schritt 3: Teilen Sie die Zahlungsanforderung mit Ihrem Kunden**
 
-Nachdem Sie den Stacks Pay-Link oder QR-Code generiert haben, können Sie ihn problemlos mit Ihren Kunden teilen.
+Nachdem Sie den StacksPay-Link oder QR-Code generiert haben, können Sie ihn problemlos mit Ihren Kunden teilen.
 
 1. **Per E-Mail oder Messaging**:
    - Kopieren Sie den codierten Zahlungslink und fügen Sie ihn in eine E-Mail oder Nachricht an Ihren Kunden ein.
@@ -69,16 +69,16 @@ Sobald Ihr Kunde die Zahlung abgeschlossen hat, werden die Gelder direkt an Ihre
    - Melden Sie sich bei Ihrer Wallet (Boom, Xverse, Leather usw.) an und überwachen Sie eingehende Transaktionen. Zahlungen sollten kurz nach der Bestätigung auf der Blockchain erscheinen.
 
 2. **Überprüfen Sie die Zahlung**:
-   - Überprüfen Sie die Transaktionsdetails, um sicherzustellen, dass der korrekte Betrag gesendet wurde. Die `spId` (Stacks Pay ID) kann Ihnen helfen zu bestätigen, dass die Zahlung Ihrer spezifischen Anfrage entspricht.
+   - Überprüfen Sie die Transaktionsdetails, um sicherzustellen, dass der korrekte Betrag gesendet wurde. Die `spId` (StacksPay ID) kann Ihnen helfen zu bestätigen, dass die Zahlung Ihrer spezifischen Anfrage entspricht.
 
 3. **Verfolgen Sie die Zahlung auf der Blockchain**:
-   - Da Stacks Pay auf der Stacks-Blockchain arbeitet, können Sie jede Transaktion öffentlich in einem Blockchain-Explorer wie [Stacks Explorer](https://explorer.stacks.co) einsehen. Geben Sie einfach Ihre Stacks-Adresse ein, um den Zahlungsstatus zu sehen.
+   - Da StacksPay auf der Stacks-Blockchain arbeitet, können Sie jede Transaktion öffentlich in einem Blockchain-Explorer wie [Stacks Explorer](https://explorer.stacks.co) einsehen. Geben Sie einfach Ihre Stacks-Adresse ein, um den Zahlungsstatus zu sehen.
 
-### **Schritt 5: Best Practices für die Nutzung von Stacks Pay**
+### **Schritt 5: Best Practices für die Nutzung von StacksPay**
 
 Um einen reibungslosen Zahlungsprozess für Sie und Ihre Kunden zu gewährleisten, befolgen Sie diese Best Practices:
 
-- **Verwenden Sie das SDK oder die API zur Zahlungserstellung**: Generieren Sie Stacks Pay-Zahlungslinks mit unserem SDK oder API, um eine nahtlose Integration in Ihre Systeme zu ermöglichen.
+- **Verwenden Sie das SDK oder die API zur Zahlungserstellung**: Generieren Sie StacksPay-Zahlungslinks mit unserem SDK oder API, um eine nahtlose Integration in Ihre Systeme zu ermöglichen.
 
 - **Verwenden Sie die `spId` zur Bestellverfolgung**: Verwenden Sie die `spId`, um Zahlungen mit Ihren internen Bestellnummern oder Arbeitsabläufen zu verknüpfen. Standardmäßig wird eine `spId` automatisch generiert, Sie können jedoch beim Erstellen des Zahlungslinks eine benutzerdefinierte `spId` angeben.
 

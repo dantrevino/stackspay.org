@@ -1,6 +1,6 @@
 export const SITE = {
   title: 'StacksPay',
-  description: 'Stacks Pay: A Payment Request Standard for Stacks Blockchain Payments',
+  description: 'StacksPay: A Payment Request Standard for Stacks Blockchain Payments',
   defaultLanguage: 'en-us'
 } as const
 
@@ -41,35 +41,37 @@ export type Sidebar = Record<
 export const SIDEBAR: Sidebar = {
   en: {
     'For Users': [
-      { text: 'What is Stacks Pay?', link: 'en/introduction' },
-      { text: 'How to Use Stacks Pay as a Merchant', link: 'en/merchant' },
-      { text: 'Using Stacks Pay', link: 'en/using' }
+      { text: 'What is StacksPay?', link: 'en/introduction' },
+      { text: 'How to Use StacksPay as a Merchant', link: 'en/merchant' },
+      { text: 'Using StacksPay', link: 'en/using' },
+      { text: 'StacksPay FAQ', link: 'en/faq'}
     ],
     'For Developers': [
       { text: 'The Specification', link: 'en/dev/specification' },
 { text: 'Getting Started', link: 'en/dev/getting-started' },
-{ text: 'Using StacksPay', link: 'en/dev/using-stackspay' },
+{ text: 'Using StacksPay', link: 'en/dev/using-stackspay' }
 
     ]
   },
   de: {
     'Für Benutzer': [
-      { text: 'Was ist Stacks Pay?', link: 'de/introduction' },
-      { text: 'So verwenden Sie Stacks Pay als Händler', link: 'de/merchant' },
-      { text: 'Stacks Pay verwenden', link: 'de/using' }
+      { text: 'Was ist StacksPay?', link: 'de/introduction' },
+      { text: 'So verwenden Sie StacksPay als Händler', link: 'de/merchant' },
+      { text: 'StacksPay verwenden', link: 'de/using' }
     ],
     'Für Entwickler': [
       { text: 'Die Spezifikation', link: 'de/dev/dev/dev/dev/specification' },
 { text: 'Erste Schritte', link: 'de/dev/dev/dev/dev/getting-started' },
-{ text: 'StacksPay verwenden', link: 'de/dev/dev/dev/dev/using-stackspay' },
+      { text: 'StacksPay verwenden', link: 'de/dev/dev/dev/dev/using-stackspay' },
+
 
     ]
   },
   es: {
     'Para usuarios': [
-      { text: '¿Qué es Stacks Pay?', link: 'es/introduction' },
-      { text: 'Cómo usar Stacks Pay como comerciante', link: 'es/merchant' },
-      { text: 'Usando Stacks Pay', link: 'es/using' }
+      { text: '¿Qué es StacksPay?', link: 'es/introduction' },
+      { text: 'Cómo usar StacksPay como comerciante', link: 'es/merchant' },
+      { text: 'Usando StacksPay', link: 'es/using' }
     ],
     'Para desarrolladores': [
       { text: 'La Especificación', link: 'es/dev/dev/dev/specification' },
@@ -80,9 +82,9 @@ export const SIDEBAR: Sidebar = {
   },
   pt: {
     'Para usuários': [
-      { text: 'O que é Stacks Pay?', link: 'pt/introduction' },
-      { text: 'Como usar Stacks Pay como comerciante', link: 'pt/merchant' },
-      { text: 'Usando Stacks Pay', link: 'pt/using' }
+      { text: 'O que é StacksPay?', link: 'pt/introduction' },
+      { text: 'Como usar StacksPay como comerciante', link: 'pt/merchant' },
+      { text: 'Usando StacksPay', link: 'pt/using' }
     ],
     'Para desenvolvedores': [
     { text: 'A Especificação', link: 'pt/dev/dev/specification' },
@@ -92,9 +94,9 @@ export const SIDEBAR: Sidebar = {
   },
   'pt-BR': {
     'Para usuários': [
-      { text: 'O que é Stacks Pay?', link: 'pt-BR/introduction' },
-      { text: 'Como usar o Stacks Pay como comerciante', link: 'pt-BR/merchant' },
-      { text: 'Usando o Stacks Pay', link: 'pt-BR/using' }
+      { text: 'O que é StacksPay?', link: 'pt-BR/introduction' },
+      { text: 'Como usar o StacksPay como comerciante', link: 'pt-BR/merchant' },
+      { text: 'Usando o StacksPay', link: 'pt-BR/using' }
     ],
     'Para desenvolvedores': [
       { text: 'A Especificação', link: 'pt-BR/dev/specification' },
@@ -105,9 +107,9 @@ export const SIDEBAR: Sidebar = {
   },
   fr: {
     'Pour les utilisateurs': [
-      { text: 'Qu\'est-ce que Stacks Pay?', link: 'fr/introduction' },
-      { text: 'Comment utiliser Stacks Pay en tant que marchand', link: 'fr/merchant' },
-      { text: 'Utiliser Stacks Pay', link: 'fr/using' }
+      { text: 'Qu\'est-ce que StacksPay?', link: 'fr/introduction' },
+      { text: 'Comment utiliser StacksPay en tant que marchand', link: 'fr/merchant' },
+      { text: 'Utiliser StacksPay', link: 'fr/using' }
     ],
     'Pour les développeurs': [
       { text: 'La Spécification', link: 'fr/dev/specification' },

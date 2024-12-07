@@ -1,0 +1,104 @@
+---
+title: 'StacksPay FAQ'
+description: 'Frequently Asked Questions'
+---
+
+## General Questions
+
+### What is StacksPay?
+
+StacksPay is a proposed payment request standard for the Stacks blockchain that creates easy, secure bundles of transaction information that can be shared off-chain. It simplifies payment interactions between payers and recipients by providing a standardized method for encoding, decoding, and processing payments.
+
+### What problem does StacksPay solve?
+
+It simplifies the sharing and processing of payment information outside of applications, making it easier to distribute payment links socially and process payments with fewer clicks. Instead of requiring users to go through multiple steps in a wallet or dApp, StacksPay allows for direct peer-to-peer payment links.
+
+### Is this changing the Stacks blockchain?
+
+No, StacksPay doesn't replace or change any core functions of the Stacks blockchain. It's a layer built on top of existing Stacks blockchain operations that standardizes how payment information is bundled and shared.
+
+## Technical Details
+
+### What operations does StacksPay support?
+
+There are four predefined operations proposed in the specification:
+1. Invoice - For specific payment requests with defined amounts
+2. Support - For open-ended, reusable requests (tips, donations)
+3. Mint - For NFT minting processes
+4. Custom - Flexible operation type that applications can define
+
+## What's the technical implementation?
+
+- Uses web+stx protocol prefix (web+stx:)
+- Implements base32m encoding for better checksums and larger text sizes
+- Available as an npm package with TypeScript implementation
+- Additional Python and Rust libraries are in development
+
+## Usage & Applications
+
+### How does a basic payment flow work?
+
+1. Sender creates a payment request (invoice, support request, etc.)
+2. System generates a link or QR code
+3. Recipient clicks the link or scans the QR code
+4. Their wallet opens and displays the payment details
+5. Recipient can verify and approve or cancel the payment
+
+### What can StacksPay be used for?
+
+- Direct peer-to-peer payments
+- Donation/tipping systems
+- NFT minting and sales
+- Smart contract interactions
+- Merchant payments
+- Social media tipping
+- Point-of-sale systems (future)
+- more ...
+
+### What tokens are supported?
+
+- Stacks (STX)
+- Any SIP-10 tokens
+- Future support planned for Bitcoin and Lightning
+
+## Wallet Integration
+
+### How do wallets implement StacksPay?
+
+- Wallets can implement their own user interface
+- Must respect certain parameters (like expiration dates)
+- Should verify transaction details and display them to users
+- Can implement protocol handlers for direct link opening
+
+### What happens if someone doesn't have a compatible wallet?
+
+- Users will need to install a compatible wallet
+- Senders should include instructions for wallet installation
+- On Android, users get a message about no compatible applications
+- Different operating systems may handle the protocol differently
+
+## Development & Future
+
+### Where can I find more information?
+
+- Visit stackspay.org
+- Review SIP-202 in the Stacks SIP repository
+- Check the reference implementation on npm
+- Join the testing group for early access
+
+### What's the future roadmap?
+
+- Integration with point-of-sale systems
+- Expansion into physical goods purchases
+- Better Lightning than Lightning on Stacks
+- Enhanced smart contract integration
+- Mobile wallet focus through Boom wallet
+- Marketplace and smart shops development
+
+### How can developers integrate StacksPay?
+
+- Use the available SDK
+- Implement the standard in their applications
+- Create payment links programmatically
+- Add share buttons for StacksPay links in their dApps
+- Look for an api from Boom soon.
