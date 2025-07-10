@@ -1,0 +1,238 @@
+---
+title: Exemplos de Integração
+description: Exemplos do mundo real de integrações com o StacksPay.
+---
+
+# Exemplos de Integração
+
+Explore exemplos práticos e do mundo real de como integrar o StacksPay em seus aplicativos. Esses padrões vão além do básico e demonstram como resolver desafios comuns de desenvolvimento.
+
+## 1. Lado do Servidor: Checkout de E-commerce
+
+Neste exemplo, um servidor Node.js/Express gera uma URL de `invoice` do StacksPay durante o checkout. O servidor calcula o total, inclui um ID de pedido no parâmetro `invoiceNumber` e define um tempo de expiração.
+
+**Caso de uso:** Perfeito para sites de e-commerce, assinaturas de SaaS ou qualquer aplicativo que precise gerar uma solicitação de pagamento no backend.
+
+```typescript
+// src/server.ts
+import express from 'express';
+import { encodeStacksPayURL, StacksPayError } from 'stacks-pay';
+import { stxToMicroStx } from '@stacks/transactions';
+
+const app = express();
+app.use(express.json());
+
+// Seu banco de dados de produtos ou lógica de preços
+const products = {
+  'prod_123': { name: 'Meu Produto Incrível', price: 25.5 }, // preço em STX
+};
+
+app.post('/api/create-payment', (req, res) => {
+  const { productId, orderId } = req.body;
+
+  if (!productId || !orderId) {
+    return res.status(400).json({ error: 'productId e orderId são obrigatórios' });
+  }
+
+  const product = products[productId];
+  if (!product) {
+    return res.status(404).json({ error: 'Produto não encontrado' });
+  }
+
+  // Define o pagamento para expirar em 15 minutos
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+  try {
+    const paymentURL = encodeStacksPayURL({
+      operation: 'invoice',
+      recipient: process.env.MERCHANT_ADDRESS!, // Carregue das variáveis de ambiente
+      amount: stxToMicroStx(product.price).toString(),
+      token: 'STX',
+      description: `Pagamento por ${product.name}`,
+      invoiceNumber: orderId,
+      expiresAt: expiresAt,
+      memo: `Pedido ${orderId}`,
+    });
+
+    res.json({ paymentURL });
+  } catch (error) {
+    if (error instanceof StacksPayError) {
+      res.status(400).json({ error: error.message, code: error.code });
+    } else {
+      res.status(500).json({ error: 'Falha ao criar URL de pagamento' });
+    }
+  }
+});
+
+app.listen(3000, () => {
+  console.log('Servidor rodando em http://localhost:3000');
+});
+```
+
+## 2. Frontend: Botão de Doação em React e Código QR
+
+Este exemplo mostra um componente React que cria um link de `support` para doações. Ele usa uma biblioteca do lado do cliente para gerar um código QR para a URL de pagamento, facilitando o pagamento por usuários de dispositivos móveis.
+
+**Caso de uso:** Caixas de gorjetas, links "pague-me um café" ou campanhas de arrecadação de fundos.
+
+```tsx
+// src/components/DonationButton.tsx
+import React, { useMemo } from 'react';
+import { encodeStacksPayURL } from 'stacks-pay';
+import QRCode from 'qrcode.react';
+
+interface DonationButtonProps {
+  recipient: string;
+  description: string;
+}
+
+export const DonationButton: React.FC<DonationButtonProps> = ({ recipient, description }) => {
+  const paymentURL = useMemo(() => {
+    try {
+      return encodeStacksPayURL({
+        operation: 'support',
+        recipient,
+        description,
+        token: 'STX',
+      });
+    } catch (error) {
+      console.error('Falha ao gerar URL de doação:', error);
+      return null;
+    }
+  }, [recipient, description]);
+
+  if (!paymentURL) {
+    return <div>Erro ao gerar link de pagamento.</div>;
+  }
+
+  return (
+    <div>
+      <h3>Apoie Nosso Trabalho</h3>
+      <p>{description}</p>
+      <a href={paymentURL}>Clique para Pagar</a>
+      <div style={{ marginTop: '1rem' }}>
+        <p>Ou escaneie com sua carteira:</p>
+        <QRCode value={paymentURL} size={128} />
+      </div>
+    </div>
+  );
+};
+
+// Uso em outro componente
+// <DonationButton
+//   recipient="SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS"
+//   description="Seu apoio nos ajuda a construir grandes coisas."
+// />
+```
+
+## 3. Frontend + Backend: Mint de NFT
+
+Este exemplo usa um backend Python/Flask para criar uma URL de `mint` e um frontend simples de JavaScript baunilha para exibi-la. Isso separa a lógica de negócios (como verificar a elegibilidade para o mint) da apresentação.
+
+**Caso de uso:** Páginas de mint de coleção de NFTs, portais de reivindicação de tokens.
+
+### Backend Python (Flask)
+
+```python
+# src/app.py
+from flask import Flask, jsonify
+from stacks_pay import encode_stacks_pay_url, StacksPayError
+
+app = Flask(__name__)
+
+MINT_PRICE_STX = 5
+MINT_PRICE_USTX = str(MINT_PRICE_STX * 1_000_000)
+NFT_CONTRACT_ADDRESS = "SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS.my-nft-collection"
+
+@app.route("/api/create-mint-link", methods=["POST"])
+def create_mint_link():
+    # Em um aplicativo real, você pode verificar a elegibilidade do usuário, o suprimento restante, etc.
+    try:
+        mint_url = encode_stacks_pay_url({
+            "operation": "mint",
+            "contractAddress": NFT_CONTRACT_ADDRESS,
+            "functionName": "claim", # A função a ser chamada no contrato
+            "amount": MINT_PRICE_USTX,
+            "token": "STX",
+            "description": "Crie um NFT de Exemplo exclusivo"
+        })
+        return jsonify({"mintURL": mint_url})
+    except StacksPayError as e:
+        return jsonify({"error": str(e)}), 400
+
+if __name__ == "__main__":
+    app.run(port=5000)
+```
+
+### Frontend HTML/JavaScript
+
+```html
+<!-- public/mint.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Crie um NFT</title>
+</head>
+<body>
+    <h1>Crie seu NFT</h1>
+    <button id="mintButton">Obter Link de Mint</button>
+    <div id="result" style="margin-top: 20px;"></div>
+
+    <script>
+        document.getElementById('mintButton').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            try {
+                const response = await fetch('/api/create-mint-link', { method: 'POST' });
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `<p>Clique no link para criar:</p><a href="${data.mintURL}">${data.mintURL}</a>`;
+                } else {
+                    resultDiv.innerText = `Erro: ${data.error}`;
+                }
+            } catch (error) {
+                resultDiv.innerText = 'Falha ao conectar ao servidor.';
+            }
+        });
+    </script>
+</body>
+</html>
+```
+
+## 4. Avançado: Pagando com um Token SIP-010
+
+O StacksPay não se limita ao STX. Este exemplo em Rust demonstra como criar uma fatura para um pagamento usando um token fungível SIP-010, como o `xBTC`.
+
+**Caso de uso:** Aceitar stablecoins ou outros tokens por bens e serviços.
+
+```rust
+// src/main.rs
+use stacks_pay::{encode_stacks_pay_url, StacksPayParams};
+
+fn create_xbtc_invoice() -> Result<String, Box<dyn std::error::Error>> {
+    // xBTC tem 8 decimais. 1 xBTC = 100,000,000 unidades menores.
+    // Esta fatura é para 0.5 xBTC.
+    let amount_in_base_units = (0.5 * 100_000_000.0).to_string();
+
+    let params = StacksPayParams {
+        operation: "invoice".to_string(),
+        recipient: Some("SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS".to_string()),
+        // O principal completo do contrato para o token xBTC
+        token: Some("SP3DX3H4FEYZJZJ787QN66K4E5B53X5W021T0D87X.Wrapped-Bitcoin".to_string()),
+        amount: Some(amount_in_base_units),
+        description: Some("Pagamento por serviços em xBTC".to_string()),
+        ..Default::default()
+    };
+
+    let url = encode_stacks_pay_url(&params)?;
+    Ok(url)
+}
+
+fn main() {
+    match create_xbtc_invoice() {
+        Ok(url) => println!("URL de pagamento xBTC gerada: {}", url),
+        Err(e) => eprintln!("Erro: {}", e),
+    }
+}
+```

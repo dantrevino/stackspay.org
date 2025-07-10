@@ -1,0 +1,552 @@
+---
+title: Documentação do SDK
+description: Aprenda a usar o SDK do StacksPay em seus aplicativos.
+---
+
+Documentação abrangente para o SDK do StacksPay nas implementações TypeScript, Python e Rust.
+
+## Suporte de Linguagem
+
+O StacksPay fornece SDKs de primeira classe para várias linguagens de programação:
+
+- **TypeScript/JavaScript**: `stacks-pay` - Completo com definições TypeScript
+- **Python**: `stacks-pay` - API Pythônica com dicas de tipo
+- **Rust**: `stacks-pay` - Seguro para memória com abstrações de custo zero
+
+## SDK TypeScript/JavaScript
+
+### Instalação
+
+```bash
+npm install stacks-pay
+# ou
+yarn add stacks-pay
+```
+
+### Funções Principais
+
+#### `encodeStacksPayURL(params: StacksPayParams): string`
+
+Cria uma URL do StacksPay a partir de parâmetros de pagamento.
+
+```typescript
+import { encodeStacksPayURL } from 'stacks-pay';
+
+const url = encodeStacksPayURL({
+  operation: 'invoice',
+  recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+  token: 'STX',
+  amount: '1000000',
+  description: 'Compra de café',
+  expiresAt: '2024-12-31T23:59:59.000Z'
+});
+```
+
+#### `decodeStacksPayURL(url: string): StacksPayParams`
+
+Decodifica uma URL do StacksPay de volta para seus parâmetros.
+
+```typescript
+import { decodeStacksPayURL } from 'stacks-pay';
+
+const params = decodeStacksPayURL('web+stx:stxpay1...');
+console.log(params.operation); // 'invoice'
+console.log(params.amount);    // '1000000'
+```
+
+#### `validateStacksPayURL(url: string): ValidationResult`
+
+Valida uma URL do StacksPay sem decodificar.
+
+```typescript
+import { validateStacksPayURL } from 'stacks-pay';
+
+const result = validateStacksPayURL('web+stx:stxpay1...');
+if (result.isValid) {
+  console.log('URL é válida');
+} else {
+  console.error('Erros de validação:', result.errors);
+}
+```
+
+### Definições de Tipo
+
+```typescript
+interface StacksPayParams {
+  operation: 'invoice' | 'support' | 'mint';
+  recipient?: string;              // Obrigatório para invoice/support
+  contractAddress?: string;        // Obrigatório para mint
+  functionName?: string;          // Obrigatório para mint (padrão: 'claim')
+  token?: string;                 // Padrão: 'STX'
+  amount?: string;                // Obrigatório para invoice/mint
+  description?: string;
+  expiresAt?: string;             // Datetime ISO-8601
+  invoiceNumber?: string;
+  dueDate?: string;               // Data ISO-8601
+  memo?: string;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+class StacksPayError extends Error {
+  constructor(message: string, public code: string) {
+    super(message);
+  }
+}
+```
+
+### Funções Auxiliares
+
+#### Conversão de Quantia
+
+```typescript
+import { stxToMicroStx, microStxToStx, tokenToBaseUnit, baseUnitToToken } from 'stacks-pay';
+
+// Conversões de STX
+const microStx = stxToMicroStx(1.5);        // "1500000"
+const stx = microStxToStx("1500000");       // 1.5
+
+// Conversões de token SIP-010
+const baseUnit = tokenToBaseUnit(100, 6);   // "100000000" (para 6 decimais)
+const token = baseUnitToToken("100000000", 6); // 100
+```
+
+#### Utilitários de Endereço
+
+```typescript
+import { validateStacksAddress, isMainnetAddress, isTestnetAddress } from 'stacks-pay';
+
+const isValid = validateStacksAddress('SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS');
+const isMainnet = isMainnetAddress('SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS'); // true
+const isTestnet = isTestnetAddress('ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'); // true
+```
+
+### Tratamento de Erros
+
+```typescript
+import { encodeStacksPayURL, StacksPayError } from 'stacks-pay';
+
+try {
+  const url = encodeStacksPayURL({
+    operation: 'invoice',
+    recipient: 'invalid-address',
+    amount: '1000000'
+  });
+} catch (error) {
+  if (error instanceof StacksPayError) {
+    switch (error.code) {
+      case 'INVALID_ADDRESS':
+        console.error('Endereço Stacks inválido fornecido');
+        break;
+      case 'MISSING_REQUIRED_PARAM':
+        console.error('Parâmetro obrigatório ausente');
+        break;
+      case 'INVALID_AMOUNT':
+        console.error('A quantia deve ser uma string de inteiro positivo');
+        break;
+      default:
+        console.error('Erro do StacksPay:', error.message);
+    }
+  }
+}
+```
+
+## SDK Python
+
+### Instalação
+
+```bash
+pip install stacks-pay
+```
+
+### Funções Principais
+
+```python
+from stacks_pay import (
+    encode_stacks_pay_url,
+    decode_stacks_pay_url,
+    validate_stacks_pay_url,
+    StacksPayError
+)
+
+# Codificação
+params = {
+    'operation': 'invoice',
+    'recipient': 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+    'token': 'STX',
+    'amount': '1000000',
+    'description': 'Compra de café'
+}
+
+url = encode_stacks_pay_url(params)
+print(url)  # web+stx:stxpay1...
+
+# Decodificação
+decoded = decode_stacks_pay_url(url)
+print(decoded['operation'])  # 'invoice'
+
+# Validação
+result = validate_stacks_pay_url(url)
+if result['is_valid']:
+    print('URL é válida')
+else:
+    print('Erros:', result['errors'])
+```
+
+### Funções Auxiliares
+
+```python
+from stacks_pay.utils import (
+    stx_to_micro_stx,
+    micro_stx_to_stx,
+    validate_stacks_address
+)
+
+# Conversão de quantia
+micro_stx = stx_to_micro_stx(1.5)      # "1500000"
+stx = micro_stx_to_stx("1500000")      # 1.5
+
+# Validação de endereço
+is_valid = validate_stacks_address('SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS')
+```
+
+### Tratamento de Erros
+
+```python
+from stacks_pay import encode_stacks_pay_url, StacksPayError
+
+try:
+    url = encode_stacks_pay_url({
+        'operation': 'invoice',
+        'recipient': 'invalid-address',
+        'amount': '1000000'
+    })
+except StacksPayError as e:
+    print(f"Erro do StacksPay: {e}")
+    print(f"Código do erro: {e.code}")
+```
+
+## SDK Rust
+
+### Instalação
+
+Adicione ao `Cargo.toml`:
+
+```toml
+[dependencies]
+stacks-pay = "0.1"
+```
+
+### Funções Principais
+
+```rust
+use stacks_pay::{
+    encode_stacks_pay_url,
+    decode_stacks_pay_url,
+    validate_stacks_pay_url,
+    StacksPayParams,
+    StacksPayError
+};
+
+// Codificação
+let params = StacksPayParams {
+    operation: "invoice".to_string(),
+    recipient: Some("SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS".to_string()),
+    token: Some("STX".to_string()),
+    amount: Some("1000000".to_string()),
+    description: Some("Compra de café".to_string()),
+    ..Default::default()
+};
+
+let url = encode_stacks_pay_url(&params)?;
+println!("{}", url);
+
+// Decodificação
+let decoded = decode_stacks_pay_url(&url)?;
+println!("Operação: {}", decoded.operation);
+
+// Validação
+let result = validate_stacks_pay_url(&url)?;
+if result.is_valid {
+    println!("URL é válida");
+} else {
+    println!("Erros: {:?}", result.errors);
+}
+```
+
+### Definições de Tipo
+
+```rust
+#[derive(Debug, Clone, Default)]
+pub struct StacksPayParams {
+    pub operation: String,
+    pub recipient: Option<String>,
+    pub contract_address: Option<String>,
+    pub function_name: Option<String>,
+    pub token: Option<String>,
+    pub amount: Option<String>,
+    pub description: Option<String>,
+    pub expires_at: Option<String>,
+    pub invoice_number: Option<String>,
+    pub due_date: Option<String>,
+    pub memo: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct ValidationResult {
+    pub is_valid: bool,
+    pub errors: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum StacksPayError {
+    #[error("Endereço Stacks inválido: {0}")]
+    InvalidAddress(String),
+    #[error("Parâmetro obrigatório ausente: {0}")]
+    MissingRequiredParam(String),
+    #[error("Formato de quantia inválido: {0}")]
+    InvalidAmount(String),
+    #[error("Erro de codificação: {0}")]
+    EncodingError(String),
+    #[error("Erro de decodificação: {0}")]
+    DecodingError(String),
+}
+```
+
+### Funções Auxiliares
+
+```rust
+use stacks_pay::utils::{
+    stx_to_micro_stx,
+    micro_stx_to_stx,
+    validate_stacks_address
+};
+
+// Conversão de quantia
+let micro_stx = stx_to_micro_stx(1.5)?;        // "1500000"
+let stx = micro_stx_to_stx("1500000")?;        // 1.5
+
+// Validação de endereço
+let is_valid = validate_stacks_address("SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS")?;
+```
+
+## Uso Avançado
+
+### Operações Personalizadas
+
+Todos os SDKs suportam operações personalizadas para casos de uso especializados:
+
+```typescript
+// TypeScript
+const customURL = encodeStacksPayURL({
+  operation: 'custom:subscription',
+  recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+  amount: '5000000',
+  description: 'Assinatura mensal',
+  // Parâmetros personalizados (preservados mas não validados)
+  custom_param: 'value'
+});
+```
+
+### Operações em Lote
+
+```typescript
+// TypeScript - Gere múltiplas URLs de pagamento
+const payments = [
+  { recipient: 'SP123...', amount: '1000000', description: 'Pagamento 1' },
+  { recipient: 'SP456...', amount: '2000000', description: 'Pagamento 2' },
+];
+
+const urls = payments.map(payment => 
+  encodeStacksPayURL({
+    operation: 'invoice',
+    token: 'STX',
+    ...payment
+  })
+);
+```
+
+### Endereços Específicos da Rede
+
+```typescript
+// TypeScript - Lide com diferentes redes
+import { encodeStacksPayURL, isMainnetAddress } from 'stacks-pay';
+
+function createPaymentURL(recipient: string, amount: string) {
+  if (!isMainnetAddress(recipient)) {
+    console.warn('Usando endereço de testnet em produção');
+  }
+  
+  return encodeStacksPayURL({
+    operation: 'invoice',
+    recipient,
+    amount,
+    token: 'STX'
+  });
+}
+```
+
+### Manuseio de Expiração
+
+```typescript
+// TypeScript - Defina tempos de expiração
+function createInvoiceWithExpiration(params: any, hoursValid: number = 24) {
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + hoursValid);
+  
+  return encodeStacksPayURL({
+    ...params,
+    expiresAt: expiresAt.toISOString()
+  });
+}
+```
+
+## Padrões de Integração
+
+### Hook React
+
+```typescript
+// TypeScript - Integração com React
+import { useState, useCallback } from 'react';
+import { encodeStacksPayURL, StacksPayParams } from 'stacks-pay';
+
+export function useStacksPay() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createPaymentURL = useCallback(async (params: StacksPayParams) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const url = encodeStacksPayURL(params);
+      return url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { createPaymentURL, isLoading, error };
+}
+```
+
+### Middleware Express.js
+
+```typescript
+// TypeScript - Middleware Express
+import express from 'express';
+import { encodeStacksPayURL } from 'stacks-pay';
+
+app.post('/api/create-payment', (req, res) => {
+  try {
+    const { recipient, amount, description } = req.body;
+    
+    const paymentURL = encodeStacksPayURL({
+      operation: 'invoice',
+      recipient,
+      amount,
+      description,
+      token: 'STX'
+    });
+    
+    res.json({ paymentURL });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+```
+
+## Configuração
+
+### Configurações Globais
+
+```typescript
+// TypeScript - Configure configurações globais
+import { configure } from 'stacks-pay';
+
+configure({
+  defaultNetwork: 'mainnet',
+  validateAddresses: true,
+  defaultToken: 'STX',
+  encoding: {
+    uppercase: false,    // Use minúsculas para compartilhamento de texto
+    errorCorrection: 'M' // Nível de correção de erro do código QR
+  }
+});
+```
+
+## Melhores Práticas
+
+### Validação de Parâmetros
+
+Sempre valide os parâmetros antes de codificar:
+
+```typescript
+function validatePaymentParams(params: StacksPayParams): string[] {
+  const errors: string[] = [];
+  
+  if (!params.operation) {
+    errors.push('Operação é obrigatória');
+  }
+  
+  if (params.operation === 'invoice' && !params.amount) {
+    errors.push('Quantia é obrigatória para faturas');
+  }
+  
+  if (params.amount && !/^\d+$/.test(params.amount)) {
+    errors.push('A quantia deve ser uma string de inteiro positivo');
+  }
+  
+  return errors;
+}
+```
+
+### Gerenciamento de Memória (Rust)
+
+```rust
+// Rust - Manuseio eficiente de parâmetros
+use stacks_pay::StacksPayParams;
+
+impl StacksPayParams {
+    pub fn new_invoice(recipient: &str, amount: &str) -> Self {
+        Self {
+            operation: "invoice".to_string(),
+            recipient: Some(recipient.to_string()),
+            amount: Some(amount.to_string()),
+            token: Some("STX".to_string()),
+            ..Default::default()
+        }
+    }
+}
+```
+
+### Recuperação de Erros
+
+```typescript
+// TypeScript - Tratamento de erros gracioso
+async function createPaymentWithFallback(params: StacksPayParams): Promise<string> {
+  try {
+    return encodeStacksPayURL(params);
+  } catch (error) {
+    // Registre o erro para depuração
+    console.error('Falha na criação da URL de pagamento:', error);
+    
+    // Tente com parâmetros mínimos
+    return encodeStacksPayURL({
+      operation: 'support',
+      recipient: params.recipient!,
+      description: 'Solicitação de pagamento'
+    });
+  }
+}
+```
+
+Pronto para aprofundar? Confira a Referência da API para documentação completa de parâmetros e a seção de Exemplos para padrões de integração do mundo real.

@@ -1,0 +1,244 @@
+---
+title: Security Model
+description: Security considerations, threat model, and best practices for StacksPay implementations.
+---
+
+# Security Model
+
+StacksPay's security model focuses on protecting users from malicious payment requests while maintaining the simplicity and interoperability that makes the protocol valuable.
+
+## Core Security Principles
+
+### 1. User Consent
+
+**Explicit approval required**: Users must explicitly approve every payment before it's broadcast to the network.
+
+**Clear information display**: Wallets must clearly show:
+- Recipient address
+- Amount being sent
+- Token type
+- Any additional fees
+- Smart contract being called (for mint operations)
+
+### 2. Data Integrity
+
+**Bech32m checksums**: Built-in error detection prevents data corruption during transmission.
+
+**Parameter validation**: All input parameters must be validated for type, format, and reasonable bounds.
+
+**Encoding verification**: Invalid or malformed URLs must be rejected with clear error messages.
+
+### 3. Temporal Security
+
+**Expiration enforcement**: Wallets **MUST** enforce `expiresAt` parameters to prevent replay attacks.
+
+**Time validation**: Expired payment requests **MUST** be rejected.
+
+## Threat Model
+
+### Attack Vectors
+
+#### 1. Malicious Payment Requests
+
+**Threat**: Attacker creates payment request with malicious parameters.
+
+**Mitigation**:
+- Wallet validates all parameters
+- User reviews transaction details before approval
+- Clear display of recipient and amount
+- Warning for unusual or suspicious requests
+
+#### 2. Social Engineering
+
+**Threat**: Attacker tricks user into scanning malicious QR code or clicking malicious link.
+
+**Mitigation**:
+- User education about verifying recipient addresses
+- Wallet warnings for unusual patterns
+- Clear transaction confirmation screens
+- Amount limits and velocity checks
+
+#### 3. Man-in-the-Middle Attacks
+
+**Threat**: Attacker intercepts and modifies payment request during transmission.
+
+**Mitigation**:
+- Bech32m checksums detect tampering
+- HTTPS for web-based sharing
+- Direct QR code scanning eliminates network transmission
+
+#### 4. Replay Attacks
+
+**Threat**: Attacker reuses old payment request to trigger duplicate payments.
+
+**Mitigation**:
+- Enforce `expiresAt` timestamps
+- Unique `invoiceNumber` tracking
+- Wallet transaction history checks
+
+### Out-of-Scope Threats
+
+- **Wallet security**: Private key management is the wallet's responsibility
+- **Network attacks**: Stacks blockchain consensus security
+- **Device security**: Physical device compromise
+- **Social engineering**: Users voluntarily sharing private keys
+
+## Security Requirements
+
+### For Wallet Implementers
+
+#### MUST Requirements
+
+1. **Parameter validation**: All fields **MUST** be type-checked and length-checked
+2. **Expiration enforcement**: Wallets **MUST** enforce `expiresAt` if present
+3. **User confirmation**: Every payment **MUST** require explicit user approval
+4. **Clear display**: Transaction details **MUST** be clearly shown to users
+5. **Error handling**: Invalid requests **MUST** be rejected with clear error messages
+
+#### SHOULD Requirements
+
+1. **Post-conditions**: Wallets **SHOULD** add appropriate post-conditions limiting the transferred asset/amount
+2. **Suspicious activity detection**: Wallets **SHOULD** warn users about unusual patterns
+3. **Amount validation**: Wallets **SHOULD** validate amounts against reasonable bounds
+4. **Address validation**: Wallets **SHOULD** verify recipient addresses are valid
+
+#### MAY Requirements
+
+1. **Transaction limits**: Wallets **MAY** implement per-transaction or daily limits
+2. **Whitelist/blacklist**: Wallets **MAY** maintain lists of known good/bad addresses
+3. **Risk scoring**: Wallets **MAY** implement risk analysis for payment requests
+
+### For Application Developers
+
+#### MUST Requirements
+
+1. **Secure generation**: Generate payment requests server-side when possible
+2. **Input validation**: Validate all user inputs before creating payment requests
+3. **Expiration times**: Set reasonable `expiresAt` values for time-sensitive requests
+4. **Error handling**: Handle encoding/decoding errors gracefully
+
+#### SHOULD Requirements
+
+1. **Fresh timestamps**: Regenerate `expiresAt` for time-sensitive invoices
+2. **Unique references**: Use unique `invoiceNumber` values
+3. **Secure storage**: Store payment request templates securely
+4. **Audit logging**: Log payment request generation and usage
+
+## Privacy Considerations
+
+### On-Chain Privacy
+
+**Memo field warning**: Memo fields are stored on-chain and are publicly visible. Wallets **MUST NOT** write sensitive data to memo fields.
+
+**Transaction privacy**: All Stacks transactions are public. Users should be aware that:
+- Transaction amounts are visible
+- Recipient addresses are visible  
+- Transaction timing is visible
+- Smart contract interactions are visible
+
+### Off-Chain Privacy
+
+**URL sharing**: Payment request URLs may be logged by:
+- Web servers
+- Messaging platforms
+- Analytics tools
+- Network infrastructure
+
+**QR codes**: QR codes may be captured by:
+- Surveillance cameras
+- Screenshots
+- Photo sharing
+
+## Best Practices
+
+### For Users
+
+1. **Verify recipients**: Always verify recipient addresses before sending payments
+2. **Check amounts**: Carefully review payment amounts before confirming
+3. **Validate requests**: Be suspicious of unexpected payment requests
+4. **Keep software updated**: Use updated wallets with latest security patches
+5. **Secure devices**: Keep devices secure and use device locks
+
+### For Merchants
+
+1. **Generate fresh requests**: Create new payment requests for each transaction
+2. **Monitor expiration**: Set appropriate expiration times
+3. **Validate payments**: Verify received payments match generated requests
+4. **Secure systems**: Protect payment generation systems
+5. **Audit trails**: Maintain logs of payment request generation
+
+### For Developers
+
+1. **Input validation**: Validate all user inputs thoroughly
+2. **Error handling**: Provide clear error messages without exposing sensitive information
+3. **Security testing**: Test for common attack vectors
+4. **Regular updates**: Keep dependencies updated
+5. **Documentation**: Clearly document security considerations
+
+## Smart Contract Security
+
+### Mint Operation Risks
+
+**Contract validation**: When using `mint` operations, wallets should:
+- Verify contract addresses are legitimate
+- Check contract source code when possible
+- Warn users about calling unknown contracts
+- Validate function names and parameters
+
+**Known contract patterns**: Wallets **MAY** maintain a whitelist of known safe contract patterns (e.g., popular NFT marketplaces).
+
+### Custom Operations
+
+**Vendor-specific risks**: Custom operations carry additional risks:
+- Unknown parameter validation
+- Unpredictable wallet behavior
+- Potential for vendor lock-in
+- Reduced interoperability
+
+**Handling guidelines**: Wallets encountering custom operations **SHOULD**:
+- Warn users about unknown operation types
+- Provide safe defaults when possible
+- Fail gracefully to prevent unexpected behavior
+
+## Incident Response
+
+### Vulnerability Disclosure
+
+**Responsible disclosure**: Security vulnerabilities should be reported to:
+- Wallet developers
+- StacksPay specification maintainers
+- Stacks community security channels
+
+**Coordination**: Critical vulnerabilities may require coordinated disclosure across multiple wallet implementations.
+
+### Emergency Procedures
+
+**Rapid response**: Critical security issues may require:
+- Emergency wallet updates
+- Temporary protocol modifications
+- Community alerts
+- Documentation updates
+
+## Security Auditing
+
+### Implementation Review
+
+**Regular audits**: Wallet implementations should undergo regular security audits focusing on:
+- Parameter validation
+- Error handling
+- User interface security
+- Cryptographic implementation
+
+**Test vectors**: Comprehensive test vectors should include:
+- Malformed inputs
+- Edge cases
+- Attack scenarios
+- Boundary conditions
+
+### Continuous Monitoring
+
+**Threat intelligence**: Monitor for:
+- New attack patterns
+- Malicious contract deployments
+- Suspicious transaction patterns
+- Community reports of issues

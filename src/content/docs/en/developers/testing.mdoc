@@ -1,0 +1,117 @@
+---
+title: Testing & Debugging
+description: Test and debug your StacksPay integration effectively.
+---
+
+# Testing & Debugging
+
+Effective testing is crucial for ensuring your StacksPay integration is reliable, secure, and provides a good user experience. This guide covers strategies for unit testing, end-to-end testing, and debugging.
+
+## 1. Unit Testing
+
+Unit tests should focus on the core logic of your integration: creating and validating StacksPay URLs. The official SDKs are designed to make this straightforward.
+
+### Key Areas to Test
+
+- **URL Encoding:** Ensure your code correctly generates valid URLs for all operations (`invoice`, `support`, `mint`).
+- **Parameter Validation:** Test that your application logic correctly validates inputs (e.g., Stacks addresses, amounts) before passing them to the SDK.
+- **Amount Conversion:** Verify that conversions between human-readable amounts (e.g., 1.5 STX) and base units (e.g., 1,500,000 µSTX) are accurate.
+- **Error Handling:** Test how your code behaves when the SDK throws an error (e.g., for an invalid recipient address).
+
+### Example: Unit Tests with Jest (TypeScript)
+
+```typescript
+// src/payment-generator.test.ts
+import { encodeStacksPayURL, decodeStacksPayURL, StacksPayError } from 'stacks-pay';
+import { stxToMicroStx } from '@stacks/transactions';
+
+// A simplified function to test
+function createInvoice(recipient: string, amountStx: number) {
+  if (amountStx <= 0) {
+    throw new Error('Amount must be positive');
+  }
+  return encodeStacksPayURL({
+    operation: 'invoice',
+    recipient,
+    token: 'STX',
+    amount: stxToMicroStx(amountStx).toString(),
+  });
+}
+
+describe('Payment Generator', () => {
+  const testnetAddress = 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';
+
+  test('should create a valid invoice URL', () => {
+    const url = createInvoice(testnetAddress, 10);
+    expect(url).toMatch(/^web\+stx:stxpay1/);
+
+    const decoded = decodeStacksPayURL(url);
+    expect(decoded.operation).toBe('invoice');
+    expect(decoded.recipient).toBe(testnetAddress);
+    expect(decoded.amount).toBe('10000000'); // 10 STX in µSTX
+  });
+
+  test('should throw an error for an invalid address', () => {
+    // The SDK will throw a StacksPayError
+    expect(() => createInvoice('invalid-address', 10)).toThrow(StacksPayError);
+    expect(() => createInvoice('invalid-address', 10)).toThrow('Invalid Stacks address format');
+  });
+
+  test('should throw a custom error for a non-positive amount', () => {
+    // Your own validation logic
+    expect(() => createInvoice(testnetAddress, 0)).toThrow('Amount must be positive');
+  });
+});
+```
+
+## 2. End-to-End (E2E) Testing
+
+E2E testing simulates a real user journey. For StacksPay, this means generating a URL and testing the payment flow with a real wallet on the **Stacks Testnet**.
+
+### Manual E2E Testing Workflow
+
+1.  **Setup:**
+    *   Run your application locally.
+    *   Get a Stacks Testnet wallet (like Leather or Xverse) funded with Testnet STX from a [faucet](https://explorer.hiro.so/sandbox/faucet?chain=testnet).
+
+2.  **Generate URL:**
+    *   Use your application to generate a StacksPay URL with a **Testnet recipient address**.
+    *   Display the URL as both a clickable link and a QR code.
+
+3.  **Test Payment:**
+    *   **Click the link:** Your browser should prompt you to open your wallet.
+    *   **Scan the QR code:** Use your wallet's mobile app to scan the code.
+
+4.  **Verify in Wallet:**
+    *   Confirm that the wallet displays the correct details: recipient, amount, token, description, and memo.
+    *   Check that the amount is displayed in a human-readable format (e.g., "10 STX").
+
+5.  **Broadcast and Confirm:**
+    *   Approve the transaction in your wallet.
+    *   Use the [Stacks Explorer](https://explorer.hiro.so/?chain=testnet) to find the transaction and verify its details on-chain.
+
+### Automated E2E Testing
+
+Automating this flow requires a testing framework like Cypress or Playwright that can interact with browser extensions, which can be complex. For most teams, manual E2E testing provides sufficient confidence.
+
+## 3. Debugging
+
+When things go wrong, here’s how to debug your integration.
+
+### Common Issues & Solutions
+
+| Issue | Symptom | Solution | 
+| :--- | :--- | :--- |
+| **Invalid URL** | Wallet rejects the link or QR code, or shows an error. | 1. **Decode Manually:** Use the `decodeStacksPayURL` function from the SDK to inspect the generated parameters. <br> 2. **Check Encoding:** Ensure no special characters are being double-encoded. The SDK handles this, so pass raw strings. <br> 3. **Validate Inputs:** Log the parameters you pass to `encodeStacksPayURL` to ensure they are correct *before* encoding. |
+| **Incorrect Amount** | Wallet shows a tiny or huge amount (e.g., 0.000010 STX instead of 10 STX). | You are likely passing a human-readable amount (e.g., `"10"`) instead of the required base unit amount (e.g., `"10000000"`). Use a helper like `stxToMicroStx` to convert the amount first. |
+| **Expired Payment** | Wallet shows an "Expired" error message. | 1. **Check `expiresAt`:** Ensure the ISO-8601 timestamp is correct and in UTC. <br> 2. **Server Time:** Verify your server's clock is synchronized. <br> 3. **Timezone Issues:** Always generate the `expiresAt` timestamp in UTC to avoid timezone confusion. |
+| **Transaction Fails** | The transaction is broadcast but fails on-chain. | 1. **Check Post-Conditions:** The wallet automatically adds post-conditions. If the recipient or amount is wrong, the transaction will abort. <br> 2. **Contract Errors (`mint`):** For `mint` operations, the target smart contract might have its own logic that causes a failure (e.g., mint has ended, user not on allowlist). Check the contract in the explorer. |
+
+
+### Using the Stacks Explorer
+
+The [Stacks Explorer](https://explorer.hiro.so) is your most powerful debugging tool. You can:
+
+-   **Inspect Transactions:** View the exact parameters of a completed or failed transaction.
+-   **Check Balances:** Confirm that funds were transferred correctly.
+-   **Read Contracts:** For `mint` operations, you can inspect the target contract's code and state.

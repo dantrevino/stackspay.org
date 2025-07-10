@@ -1,0 +1,78 @@
+---
+title: Segurança e Proteção
+description: Entendendo os recursos de segurança e as melhores práticas para o StacksPay.
+---
+
+Aprenda sobre os recursos de segurança do StacksPay e como se manter seguro ao fazer pagamentos.
+
+## Recursos de Segurança Integrados
+
+### Proteção de Expiração de Pagamento
+Pense nos links de pagamento do StacksPay como ingressos de show com datas de validade. Assim como um ingresso de show se torna inválido após o início do show, as solicitações de pagamento do StacksPay podem incluir um tempo de expiração. Sua carteira se recusará automaticamente a processar pagamentos após a expiração, protegendo você de pagar acidentalmente faturas antigas ou vencidas.
+
+### Codificação Segura de Link
+O StacksPay usa codificação avançada (chamada Bech32m) para proteger as informações de pagamento, semelhante a como o chip do seu cartão de crédito cria um código exclusivo para cada transação. Essa codificação inclui detecção de erros integrada que captura erros de digitação ou links corrompidos antes que possam causar problemas.
+
+### Precisão do Valor
+Ao contrário dos sistemas de pagamento tradicionais que podem arredondar centavos, o StacksPay lida com valores precisos até a menor unidade (como lidar com centavos individuais em vez de apenas dólares). Isso evita erros de arredondamento que podem levar a pagamentos a maior ou a menor.
+
+### Validação de Parâmetros
+Sua carteira age como um caixa cuidadoso, verificando novamente cada detalhe de uma solicitação de pagamento antes de processá-la. Ela valida endereços, valores e outros detalhes para garantir que tudo esteja correto e seguro.
+
+## Melhores Práticas de Segurança
+
+### Sempre Revise os Detalhes do Pagamento
+Antes de confirmar qualquer pagamento, revise cuidadosamente:
+- **Endereço do destinatário**: verifique se corresponde a quem você pretende pagar
+- **Valor**: verifique se o valor do pagamento está correto
+- **Tipo de token**: confirme se você está pagando com a moeda certa (STX ou outros tokens)
+- **Descrição**: verifique se a descrição do pagamento corresponde à sua transação
+
+### Fique Atento aos Sinais de Alerta
+Seja cauteloso com solicitações de pagamento que:
+- Vêm de fontes não confiáveis
+- Têm prazos de urgência incomuns
+- Pedem valores muito maiores do que o esperado
+- Incluem descrições suspeitas ou pouco claras
+
+### Proteja Suas Informações Privadas
+- Nunca, *NUNCA* compartilhe as chaves privadas ou frases de recuperação de sua carteira
+- Esteja ciente de que os memorandos (notas) da transação são registrados permanentemente na blockchain
+- Não inclua informações pessoais confidenciais nos memorandos de pagamento
+
+### Verifique os Destinatários do Pagamento
+Assim como você verificaria novamente o destinatário antes de enviar uma transferência bancária, sempre verifique se está pagando a pessoa ou empresa certa. Se não tiver certeza sobre uma solicitação de pagamento, entre em contato com o destinatário por meio de um método de comunicação separado e confiável.
+
+### Mantenha Sua Carteira Atualizada
+Use carteiras confiáveis que suportam o StacksPay e mantenha-as atualizadas com os patches de segurança mais recentes. Isso garante que você se beneficie das melhorias de segurança e correções de bugs mais recentes.
+
+## Entendendo os Tipos de Pagamento
+
+### Pagamentos de Suporte (Gorjetas)
+São como deixar uma gorjeta em um restaurante - você escolhe o valor. Sua carteira solicitará que você especifique quanto deseja enviar.
+
+### Pagamentos de Fatura
+São como pagar uma conta específica com um valor fixo. O valor é pré-definido e normalmente não pode ser alterado, semelhante ao pagamento de uma conta de serviços públicos.
+
+### Pagamentos de Mint
+São para comprar colecionáveis ou tokens digitais. Pense neles como comprar um item específico de uma máquina de venda automática - você paga o preço definido para receber o item.
+
+## O que o StacksPay Não Faz
+
+### Nenhuma Conta Necessária
+O StacksPay não armazena suas informações pessoais nem cria contas. É simplesmente uma maneira de formatar solicitações de pagamento, como um formato de fatura padronizado.
+
+### Nenhuma Custódia de Fundos
+O StacksPay nunca retém seu dinheiro. Todas as transações acontecem diretamente entre sua carteira e o destinatário na blockchain da Stacks.
+
+### Sem Reversões
+Como as transações em dinheiro, os pagamentos feitos através do StacksPay não podem ser revertidos. Sempre verifique novamente os detalhes do pagamento antes de confirmar.
+
+## Obtendo Ajuda
+
+Se você encontrar solicitações de pagamento suspeitas ou tiver preocupações com a segurança:
+- Entre em contato com o suposto remetente por meio de um método de comunicação confiável
+- Relate atividades suspeitas ao seu provedor de carteira
+- Na dúvida, não pague - é melhor prevenir do que remediar
+
+Lembre-se: o recurso de segurança mais importante é sua própria atenção cuidadosa aos detalhes do pagamento antes de confirmar qualquer transação.

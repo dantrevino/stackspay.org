@@ -1,0 +1,248 @@
+---
+title: Accepting Payments
+description: Learn how to accept StacksPay payments in your business.
+---
+
+A comprehensive guide to implementing StacksPay payment acceptance in your business, from simple links to advanced integrations.
+
+## Payment Types & Use Cases
+
+### Fixed-Price Invoices
+Perfect for: Product sales, service invoices, event tickets, subscriptions
+
+**How it works**: Create a payment link with a specific amount that customers cannot change. When they click or scan, their wallet opens with the exact payment amount pre-filled.
+
+**Business scenarios**:
+- **E-commerce**: Product purchases with fixed prices
+- **Service providers**: Predetermined service fees
+- **Event organizers**: Ticket sales with set pricing
+- **Subscriptions**: Monthly or annual service fees
+
+**Real-world example**: Boom's Marketplace uses invoice links for each art piece. When a customer finds a $150 painting, they click the StacksPay link and pay exactly $150 - no confusion, no pricing errors.
+
+### Support/Tip Payments
+Perfect for: Content creators, service providers, donations, tips
+
+**How it works**: Create a payment link where customers choose their own amount. The link includes your payment address and description, but lets the payer decide how much to send.
+
+**Business scenarios**:
+- **Content creators**: YouTube, blog, podcast support
+- **Service industry**: Restaurant tips, delivery tips
+- **Nonprofits**: Donation campaigns
+- **Freelancers**: "Buy me a coffee" style support
+
+**Real-world example**: Boom's Marketplace creators use tip links in their profiles. Fans can support their favorite artists with $5, $20, or any amount they choose.
+
+### Digital Collectibles & Minting
+Perfect for: Digital art, NFTs, limited editions, exclusive content
+
+**How it works**: Create mint links that let customers purchase digital items directly. The transaction both pays you and transfers the digital asset to the customer.
+
+**Business scenarios**:
+- **Digital artists**: Selling unique artwork
+- **Musicians**: Limited edition releases
+- **Creators**: Exclusive content access
+- **Brands**: Digital collectibles and loyalty rewards
+
+**Real-world example**: Boom's Marketplace features digital collectibles where artists create unique pieces that customers can mint directly through StacksPay links.
+
+## Integration Methods
+
+### Method 1: Boom's Marketplace (Recommended for Beginners)
+**Best for**: Artists, creators, small businesses starting with digital payments
+
+**Setup process**:
+1. Create your seller profile on Boom's Marketplace
+2. List your products, services, or digital items
+3. StacksPay links are automatically generated for each listing
+4. Customers can discover and purchase directly through the marketplace
+
+**Advantages**:
+- No technical setup required
+- Built-in customer discovery
+- Automatic payment link generation
+- Community of creators and buyers
+- Support and resources included
+
+### Method 2: Online Payment Generators
+**Best for**: Businesses that need occasional payment links
+
+**Setup process**:
+1. Visit a StacksPay generator website
+2. Fill in your payment details (address, amount, description)
+3. Generate your payment link instantly
+4. Share the link with customers via email, text, or social media
+
+**Advantages**:
+- No software installation
+- Instant link generation
+- Perfect for one-off payments
+- Works on any device with internet
+
+### Method 3: Developer Integration
+**Best for**: Websites, apps, and businesses with existing systems
+
+**Setup process**:
+1. Install the StacksPay package: `npm install stacks-pay`
+2. Generate payment links programmatically
+3. Integrate with your existing checkout flow
+4. Customize the user experience
+
+**Simple integration example**:
+```javascript
+import { encodeStacksPayURL } from 'stacks-pay';
+
+// Generate invoice for product purchase
+const paymentURL = encodeStacksPayURL({
+  operation: 'invoice',
+  recipient: 'YOUR_PAYMENT_ADDRESS',
+  token: 'STX',
+  amount: '2500000', // $25 in micro-STX
+  description: 'Handmade ceramic mug'
+});
+
+// Display as QR code or payment button
+```
+
+## Advanced Implementation Strategies
+
+### E-commerce Integration
+**For online stores and marketplaces**:
+
+1. **Checkout Integration**: Add StacksPay as a payment option alongside credit cards
+2. **Dynamic Pricing**: Generate payment links with real-time pricing
+3. **Order Management**: Track payments and fulfill orders automatically
+4. **Customer Experience**: Provide clear instructions for wallet app usage
+
+**Implementation considerations**:
+- Set appropriate payment expiration times (15-30 minutes for checkout)
+- Include order numbers in payment descriptions
+- Handle payment confirmations and order fulfillment
+- Provide customer support for payment issues
+
+### Service Business Integration
+**For consultants, freelancers, and service providers**:
+
+1. **Invoice Generation**: Create payment links for service invoices
+2. **Recurring Payments**: Generate new links for repeat customers
+3. **Partial Payments**: Allow customers to pay invoices in installments
+4. **Payment Tracking**: Monitor which invoices have been paid
+
+**Best practices**:
+- Include detailed service descriptions
+- Set reasonable payment terms (30-60 days)
+- Send payment reminders with fresh links
+- Provide receipts and confirmations
+
+### Content Creator Integration
+**For creators, influencers, and digital content providers**:
+
+1. **Multi-Platform Sharing**: Use the same tip link across all platforms
+2. **Subscriber Support**: Create different support tiers with various amounts
+3. **Exclusive Content**: Use mint links for premium content access
+4. **Community Building**: Integrate with existing creator tools
+
+**Optimization tips**:
+- Keep descriptions engaging and personal
+- Test links across different platforms
+- Monitor which platforms generate the most support
+- Thank supporters publicly (with permission)
+
+## Business Process Integration
+
+### Payment Workflow Design
+**Create efficient payment processes**:
+
+1. **Order Creation**: Generate payment links as part of your order process
+2. **Customer Communication**: Send links via email, SMS, or in-app notifications
+3. **Payment Monitoring**: Track payment status and completion
+4. **Order Fulfillment**: Automatically process completed payments
+5. **Customer Support**: Handle payment issues and questions
+
+### Customer Experience Optimization
+**Make payments smooth for customers**:
+
+1. **Clear Instructions**: Explain how to use StacksPay links
+2. **Multiple Formats**: Provide both clickable links and QR codes
+3. **Mobile Optimization**: Ensure links work perfectly on mobile devices
+4. **Payment Assistance**: Offer help for first-time users
+5. **Confirmation Process**: Send payment confirmations promptly
+
+### Financial Management
+**Track and manage your StacksPay payments**:
+
+1. **Payment Tracking**: Monitor all incoming payments
+2. **Reconciliation**: Match payments to orders or invoices
+3. **Reporting**: Generate financial reports for accounting
+4. **Tax Preparation**: Maintain records for tax purposes
+5. **Cash Flow Management**: Understand payment timing and amounts
+
+## Security & Best Practices
+
+### Link Security
+- **Expiration Times**: Set appropriate expiration dates for time-sensitive payments
+- **Amount Verification**: Always verify payment amounts before fulfillment
+- **Description Accuracy**: Use clear, specific payment descriptions
+- **Link Sharing**: Only share payment links through secure channels
+
+### Business Security
+- **Payment Verification**: Confirm payments before providing goods/services
+- **Backup Systems**: Have alternative payment methods available
+- **Customer Data**: Protect customer information and payment details
+- **Fraud Prevention**: Monitor for suspicious payment patterns
+
+### Operational Security
+- **Regular Updates**: Keep payment systems and tools updated
+- **Staff Training**: Ensure team members understand StacksPay processes
+- **Backup Procedures**: Have contingency plans for payment issues
+- **Documentation**: Maintain clear records of all payment processes
+
+## Troubleshooting & Support
+
+### Common Issues & Solutions
+
+**Customer can't open payment link**:
+- Ensure they have a compatible wallet app installed
+- Provide QR code as alternative to clickable link
+- Check if link has expired and generate new one if needed
+
+**Payment not received**:
+- Verify your payment address is correct
+- Check for network delays (payments usually confirm within minutes)
+- Ensure customer completed the transaction in their wallet
+
+**Link not working properly**:
+- Test links before sharing with customers
+- Verify all required parameters are included
+- Check for typos in payment address or amounts
+
+### Getting Help
+- **Boom's Marketplace Support**: Direct assistance for marketplace users
+- **Community Forums**: Get help from other merchants and creators
+- **Documentation**: Comprehensive guides and tutorials
+- **Developer Resources**: Technical documentation and examples
+
+## Measuring Success
+
+### Key Metrics to Track
+- **Payment Conversion Rate**: Percentage of customers who complete payments
+- **Average Payment Time**: How long customers take to pay
+- **Customer Satisfaction**: Feedback on payment experience
+- **Payment Volume**: Total payments processed over time
+- **Error Rates**: Failed or problematic payments
+
+### Optimization Strategies
+- **A/B Testing**: Test different payment descriptions and formats
+- **User Feedback**: Ask customers about their payment experience
+- **Performance Monitoring**: Track payment completion rates
+- **Continuous Improvement**: Regularly update payment processes
+
+## Next Steps
+
+1. **Choose Your Integration Method**: Start with Boom's Marketplace or online generators
+2. **Create Test Payments**: Generate and test payment links before going live
+3. **Train Your Team**: Ensure staff understand StacksPay processes
+4. **Monitor Performance**: Track payment success rates and customer feedback
+5. **Scale Gradually**: Expand StacksPay usage as you gain experience
+
+Ready to transform your payment processes? Start with simple payment links and gradually integrate more advanced features as your business grows.

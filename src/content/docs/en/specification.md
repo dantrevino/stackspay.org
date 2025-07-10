@@ -1,3 +1,8 @@
+---
+title: StacksPay Specification  
+description: SIP-029 StacksPay
+---
+
 # Preamble
 
 SIP Number: 029  

@@ -1,0 +1,78 @@
+---
+title: Security & Safety
+description: Understanding security features and best practices for StacksPay.
+---
+
+Learn about StacksPay's security features and how to stay safe while making payments.
+
+## Built-in Security Features
+
+### Payment Expiration Protection
+Think of StacksPay payment links like concert tickets with expiration dates. Just as a concert ticket becomes invalid after the show starts, StacksPay payment requests can include an expiration time. Your wallet will automatically refuse to process payments after they expire, protecting you from accidentally paying old or stale invoices.
+
+### Secure Link Encoding
+StacksPay uses advanced encoding (called Bech32m) to protect payment information, similar to how your credit card chip creates a unique code for each transaction. This encoding includes built-in error detection that catches typos or corrupted links before they can cause problems.
+
+### Amount Precision
+Unlike traditional payment systems that might round cents, StacksPay handles precise amounts down to the smallest unit (like handling individual pennies instead of just dollars). This prevents rounding errors that could lead to overpayments or underpayments.
+
+### Parameter Validation
+Your wallet acts like a careful cashier, double-checking every detail of a payment request before processing it. It validates addresses, amounts, and other details to ensure everything is correct and safe.
+
+## Safety Best Practices
+
+### Always Review Payment Details
+Before confirming any payment, carefully review:
+- **Recipient address**: Make sure it matches who you intend to pay
+- **Amount**: Verify the payment amount is correct
+- **Token type**: Confirm you're paying with the right currency (STX or other tokens)
+- **Description**: Check that the payment description matches your transaction
+
+### Watch for Red Flags
+Be cautious of payment requests that:
+- Come from untrusted sources
+- Have unusually urgent deadlines
+- Ask for much larger amounts than expected
+- Include suspicious or unclear descriptions
+
+### Protect Your Private Information
+- Never, *NEVER* share your wallet's private keys or recovery phrases
+- Be aware that transaction memos (notes) are permanently recorded on the blockchain
+- Don't include sensitive personal information in payment memos
+
+### Verify Payment Recipients
+Just like you'd double-check the recipient before sending a bank transfer, always verify you're paying the right person or business. If you're unsure about a payment request, contact the recipient through a separate, trusted communication method.
+
+### Keep Your Wallet Updated
+Use reputable wallets that support StacksPay and keep them updated with the latest security patches. This ensures you benefit from the latest security improvements and bug fixes.
+
+## Understanding Payment Types
+
+### Support Payments (Tips)
+These are like leaving a tip at a restaurant - you choose the amount. Your wallet will ask you to specify how much you want to send.
+
+### Invoice Payments
+These are like paying a specific bill with a fixed amount. The amount is pre-set and typically cannot be changed, similar to paying a utility bill.
+
+### Mint Payments
+These are for purchasing digital collectibles or tokens. Think of them like buying a specific item from a vending machine - you pay the set price to receive the item.
+
+## What StacksPay Doesn't Do
+
+### No Account Required
+StacksPay doesn't store your personal information or create accounts. It's simply a way to format payment requests, like a standardized invoice format.
+
+### No Funds Custody
+StacksPay never holds your money. All transactions happen directly between your wallet and the recipient on the Stacks blockchain.
+
+### No Reversals
+Like cash transactions, payments made through StacksPay cannot be reversed. Always double-check payment details before confirming.
+
+## Getting Help
+
+If you encounter suspicious payment requests or have security concerns:
+- Contact the supposed sender through a trusted communication method
+- Report suspicious activity to your wallet provider
+- When in doubt, don't pay - it's better to be safe than sorry
+
+Remember: The most important security feature is your own careful attention to payment details before confirming any transaction.

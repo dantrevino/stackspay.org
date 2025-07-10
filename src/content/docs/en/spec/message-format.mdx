@@ -1,0 +1,156 @@
+---
+title: Message Format
+description: Detailed specification of StacksPay parameter types and operation formats.
+---
+
+# Message Format
+
+StacksPay uses structured URL query parameters to encode payment information. This page details the parameter types and operation-specific message formats.
+
+## Common Parameter Types
+
+| Name | Type / Format | Description |
+|------|---------------|-------------|
+| `recipient` | Stacks c32-address | Address that ultimately receives the payment |
+| `token` | **STX** \| SIP-010 contract address (`SP….<contract>`) | Asset used to pay. When omitted wallets **MUST** default to **STX** |
+| `amount` | integer (string) | Amount in µSTX or in the smallest SIP-010 units |
+| `description` | UTF-8 string | Human-readable context shown to the payer |
+| `expiresAt` | ISO-8601 datetime (UTC) | After this moment wallets **MUST NOT** let the user broadcast |
+| `invoiceNumber` | free-form string | Merchant-supplied reference |
+| `dueDate` | ISO-8601 date | Informational; wallets **MAY** surface it |
+| `contractAddress` | `SP….<contract>` | SIP-009/-010 contract principal + name |
+| `functionName` | identifier | Clarity function to invoke in `contractAddress` |
+| `memo` | UTF-8 string | Optional memo field (on-chain data) |
+
+## Token Types and Amount Specification
+
+### Supported Token Types
+
+The token parameter indicates the type of token for the payment and MUST be one of:
+
+**'STX'**: For payments using the native STX token
+- Amount MUST be specified in micro-STX (uSTX)
+- 1 STX = 1,000,000 uSTX
+
+**A valid SIP-010 contract address**: For payments using SIP-010 compliant fungible tokens
+- Format: `CONTRACT_PRINCIPLE.CONTRACT_NAME`
+- Amount MUST be specified in the token's base unit as defined by its `decimals` field
+
+### Amount Base Unit Examples
+
+**For STX:**
+- `amount=1000000` = 1 STX
+- `amount=500000` = 0.5 STX
+- `amount=1` = 0.000001 STX
+
+**For SIP-010 Tokens:**
+- Token with 6 decimals: `amount=1000000` = 1 token
+- Token with 18 decimals: `amount=1000000000000000000` = 1 token
+- Token with 0 decimals: `amount=1` = 1 token
+
+## Operation Types
+
+### Support Operation
+
+User-specified donation amounts where the wallet prompts for the amount.
+
+**Query Format:**
+```
+support?recipient=<address>&token=<token>&description=<text>&expiresAt=<datetime>&memo=<text>
+```
+
+**Parameters:**
+
+| Category | Parameters |
+|----------|------------|
+| **Required** | `operation='support'`, `recipient` |
+| **Optional** | `token`, `description`, `expiresAt`, `memo` |
+
+**Wallet Behavior:**
+- Wallet **MUST** prompt the payer for the `amount`
+- Wallet **MAY** let the payer override the suggested `token`
+
+### Invoice Operation
+
+Fixed-amount payment requests with pre-filled transaction details.
+
+**Query Format:**
+```
+invoice?recipient=<address>&token=<token>&amount=<amount>&description=<text>&expiresAt=<datetime>&invoiceNumber=<ref>&dueDate=<date>&memo=<text>
+```
+
+**Parameters:**
+
+| Category | Parameters |
+|----------|------------|
+| **Required** | `operation='invoice'`, `recipient`, `token`, `amount` |
+| **Optional** | `description`, `expiresAt`, `invoiceNumber`, `dueDate`, `memo` |
+
+**Wallet Behavior:**
+- Wallet **MUST** pre-fill `amount` and **MUST NOT** allow changes unless the payer explicitly edits it
+- If `expiresAt` is present and in the past the wallet **MUST** refuse to broadcast
+
+### Mint Operation
+
+NFT/token minting with smart contract function calls.
+
+**Query Format:**
+```
+mint?contractAddress=<contract>&functionName=<function>&amount=<amount>&token=<token>&description=<text>&expiresAt=<datetime>&memo=<text>
+```
+
+**Parameters:**
+
+| Category | Parameters |
+|----------|------------|
+| **Required** | `operation='mint'`, `contractAddress`, `functionName='claim'`, `amount`, `token` |
+| **Optional** | `description`, `expiresAt`, `memo` |
+
+**Wallet Behavior:**
+- The active wallet address is used as the receiver
+- `amount` **MAY** represent a mint-price; if zero or absent the wallet builds a zero-STX transaction
+- The wallet **MUST** call `contractAddress.functionName` with any additional Clarity arguments encoded in the payload
+
+### Custom Operations
+
+Applications **MAY** register vendor-specific operations using the prefix `custom:` (e.g. `custom:subscription`).
+
+Wallets that do not recognise the tag **SHOULD** show a warning and **MAY** refuse to continue.
+
+**Format:**
+```
+custom:<operation-name>?<custom-parameters>
+```
+
+## Parameter Validation
+
+### Unknown Parameters
+
+Any query key not listed as *Required* or *Optional* for the selected `operation` **SHOULD** be ignored. Implementations **MAY** log or warn, but **MUST NOT** fail.
+
+### Type Validation
+
+All fields **MUST** be type-checked and length-checked:
+
+- **Addresses**: Must be valid Stacks c32-encoded addresses
+- **Amounts**: Must be positive integers as strings
+- **Datetimes**: Must be valid ISO-8601 format in UTC
+- **Strings**: Must be valid UTF-8 with reasonable length limits
+- **Contract addresses**: Must follow `SP/ST...` format with valid contract name
+
+## Message Examples
+
+### Support Request
+```
+support?recipient=SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS&description=Tip%20for%20great%20content
+```
+
+### Invoice Request
+```
+invoice?recipient=SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS&token=STX&amount=1000000&description=Coffee%20purchase&invoiceNumber=INV-001
+```
+
+### Mint Request
+```
+mint?contractAddress=SP123...my-nft-collection&functionName=claim&token=STX&amount=500000&description=Mint%20NFT%20%231234
+```

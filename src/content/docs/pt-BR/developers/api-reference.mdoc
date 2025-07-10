@@ -1,0 +1,494 @@
+---
+title: Referência da API
+description: Referência completa da API para desenvolvedores StacksPay.
+---
+
+Referência completa da API para todas as operações, parâmetros e estruturas de dados do StacksPay. Esta referência serve como a documentação canônica para o protocolo StacksPay (SIP-029).
+
+## Visão Geral do Protocolo
+
+O StacksPay é um padrão de solicitação de pagamento baseado em URL para a blockchain Stacks. Ele define:
+
+- **Esquema de URI**: protocolo `web+stx:` com cargas codificadas em Bech32m
+- **Operações**: Três operações principais (`support`, `invoice`, `mint`) mais operações personalizadas
+- **Codificação**: Codificação Bech32m com parte legível por humanos `stxpay`
+- **Compatibilidade**: Funciona com qualquer carteira compatível com Stacks
+
+## Estrutura da URL
+
+### Formato do Protocolo
+
+```
+web+stx:stxpay1[string-de-consulta-codificada-em-bech32m]
+```
+
+### Processo de Codificação
+
+1.  **Montagem da String de Consulta**: `operacao?param1=valor1&param2=valor2...`
+2.  **Codificação Bech32m**: Codifica com HRP `stxpay`
+3.  **Prefixo do Protocolo**: Adiciona o esquema `web+stx:`
+
+### Exemplo
+
+```
+Original: invoice?recipient=SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS&token=STX&amount=1000000
+Codificado: stxpay1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq5g5tnyv9xx6myvf5hgurjd4hhq
+Final:    web+stx:stxpay1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq5g5tnyv9xx6myvf5hgurjd4hhq
+```
+
+## Parâmetros Comuns
+
+### Tipos de Parâmetros
+
+| Parâmetro | Tipo | Formato | Descrição |
+|--- |--- |--- |--- |
+| `operation` | string | `support\|invoice\|mint\|custom:*` | Tipo de operação de pagamento |
+| `recipient` | string | Endereço c32 da Stacks | Endereço que recebe o pagamento |
+| `token` | string | Contrato `STX` ou SIP-010 | Tipo de ativo (padrão: `STX`) |
+| `amount` | string | inteiro (unidades base) | Quantia em µSTX ou unidades base do token |
+| `description` | string | UTF-8 | Contexto de pagamento legível por humanos |
+| `expiresAt` | string | datetime ISO-8601 (UTC) | Timestamp de expiração do pagamento |
+| `invoiceNumber` | string | formato livre | Identificador de referência do comerciante |
+| `dueDate` | string | data ISO-8601 | Data de vencimento informativa |
+| `contractAddress` | string | `SP....<contrato>` | Contrato inteligente para operações de mint |
+| `functionName` | string | identificador | Função do contrato a ser invocada |
+| `memo` | string | UTF-8 | Memo on-chain (use com cuidado) |
+
+### Regras de Validação de Parâmetros
+
+- **Endereços**: Devem ser endereços válidos no formato c32 da Stacks
+- **Quantias**: Devem ser strings de inteiros positivos (sem decimais)
+- **Datas**: Devem estar no formato ISO-8601 válido
+- **URLs**: Devem codificar caracteres especiais corretamente
+- **Comprimento**: A URL codificada total não deve exceder 512 caracteres
+
+## Operações
+
+### Operação de Apoio (Support)
+
+Pagamentos de quantia variável onde o pagador escolhe o valor.
+
+**Casos de uso**: Gorjetas, doações, pagamentos "pague o que quiser"
+
+#### Parâmetros Obrigatórios
+
+- `operation`: `"support"`
+- `recipient`: Endereço Stacks
+
+#### Parâmetros Opcionais
+
+- `token`: Tipo de ativo (padrão: `"STX"`)
+- `description`: Descrição do pagamento
+- `expiresAt`: Timestamp de expiração
+- `memo`: Memo on-chain
+
+#### Comportamento da Carteira
+
+- **DEVE** solicitar ao usuário a quantia
+- **PODE** permitir a substituição do token
+- **DEVE** validar o endereço do destinatário
+- **DEVE** exibir a descrição de forma proeminente
+
+#### Exemplo
+
+```typescript
+{
+  operation: 'support',
+  recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+  description: 'Apoie o jornalismo independente',
+  token: 'STX'
+}
+```
+
+### Operação de Fatura (Invoice)
+
+Pagamentos de quantia fixa para bens ou serviços específicos.
+
+**Casos de uso**: Compras de produtos, pagamentos de serviços, contas
+
+#### Parâmetros Obrigatórios
+
+- `operation`: `"invoice"`
+- `recipient`: Endereço Stacks
+- `token`: Tipo de ativo
+- `amount`: Quantia do pagamento (unidades base)
+
+#### Parâmetros Opcionais
+
+- `description`: Descrição do pagamento
+- `expiresAt`: Timestamp de expiração
+- `invoiceNumber`: Referência do comerciante
+- `dueDate`: Data de vencimento do pagamento
+- `memo`: Memo on-chain
+
+#### Comportamento da Carteira
+
+- **DEVE** pré-preencher a quantia (somente leitura por padrão)
+- **DEVE** recusar pagamentos expirados
+- **PODE** permitir a edição da quantia se o usuário solicitar explicitamente
+- **DEVE** validar todos os parâmetros
+
+#### Exemplo
+
+```typescript
+{
+  operation: 'invoice',
+  recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+  token: 'STX',
+  amount: '2500000', // 2.5 STX
+  description: 'Assinatura mensal',
+  invoiceNumber: 'INV-2024-001',
+  expiresAt: '2024-12-31T23:59:59.000Z'
+}
+```
+
+### Operação de Mint
+
+Inicia uma transação `contract-call` para uma função de contrato inteligente especificada. Embora comumente usada para mint de NFTs, esta é uma operação de propósito geral para qualquer ação on-chain que exija um pagamento a um contrato.
+
+Para um guia detalhado, consulte [Pagamentos de Contrato Inteligente](./contract-payments.mdx).
+
+**Casos de uso**: Mint de NFTs, reivindicação de tokens, pagamentos de taxas de serviço, staking em DeFi.
+
+#### Parâmetros Obrigatórios
+
+- `operation`: `"mint"`
+- `contractAddress`: Principal e nome do contrato
+- `functionName`: Função do contrato (padrão: `"claim"`)
+- `amount`: Quantia do pagamento (pode ser zero)
+- `token`: Ativo de pagamento
+
+#### Parâmetros Opcionais
+
+- `description`: Descrição do mint
+- `expiresAt`: Timestamp de expiração
+- `memo`: Memo on-chain
+
+#### Comportamento da Carteira
+
+- **DEVE** chamar a função do contrato especificada
+- **DEVE** usar o endereço da carteira ativa como receptor
+- **PODE** permitir transações de quantia zero
+- **DEVE** validar se o contrato existe
+
+#### Exemplo
+
+```typescript
+{
+  operation: 'mint',
+  contractAddress: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS.my-nft-collection',
+  functionName: 'claim',
+  token: 'STX',
+  amount: '500000', // Preço de mint de 0.5 STX
+  description: 'Mint NFT #1234'
+}
+```
+
+### Operações Personalizadas
+
+Operações específicas de aplicativos com prefixos de fornecedor.
+
+**Casos de uso**: Assinaturas, trocas, interações DeFi personalizadas
+
+#### Formato
+
+- Nome da operação: `custom:*` (ex: `custom:subscription`)
+- Parâmetros: Definidos pelo aplicativo
+- Validação: Mínima (apenas nome da operação)
+
+#### Comportamento da Carteira
+
+- **DEVE** avisar o usuário sobre operação desconhecida
+- **PODE** recusar o processamento
+- **DEVE** recorrer a padrões seguros
+
+#### Exemplo
+
+```typescript
+{
+  operation: 'custom:subscription',
+  recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+  amount: '5000000',
+  description: 'Assinatura mensal',
+  subscriptionId: 'sub_123',
+  billingCycle: 'monthly'
+}
+```
+
+## Especificações de Token
+
+### STX (Token Nativo)
+
+- **Símbolo**: `STX`
+- **Unidade Base**: micro-STX (µSTX)
+- **Conversão**: 1 STX = 1,000,000 µSTX
+- **Formato**: String de inteiro em µSTX
+
+```typescript
+// Exemplos
+'1000000'   // 1 STX
+'500000'    // 0.5 STX
+'1'         // 0.000001 STX
+```
+
+### Tokens SIP-010
+
+- **Formato**: `PRINCIPAL_DO_CONTRATO.NOME_DO_CONTRATO`
+- **Unidade Base**: 10^decimais (do contrato)
+- **Quantia**: String de inteiro em unidades base
+
+```typescript
+// Exemplo de token com 6 decimais
+{
+  token: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS.my-token',
+  amount: '1000000' // 1 token (6 decimais)
+}
+```
+
+### Funções Auxiliares de Conversão de Quantia
+
+```typescript
+// Conversões de STX
+function stxToMicroStx(stx: number): string {
+  return (stx * 1_000_000).toString();
+}
+
+function microStxToStx(microStx: string): number {
+  return parseInt(microStx) / 1_000_000;
+}
+
+// Conversões de SIP-010
+function tokenToBaseUnit(amount: number, decimals: number): string {
+  return (amount * Math.pow(10, decimals)).toString();
+}
+
+function baseUnitToToken(baseUnit: string, decimals: number): number {
+  return parseInt(baseUnit) / Math.pow(10, decimals);
+}
+```
+
+## Formatos de Endereço
+
+### Endereços Stacks
+
+O StacksPay usa endereços codificados em c32 da Stacks:
+
+- **Mainnet**: Começa com `SP` ou `SM`
+- **Testnet**: Começa com `ST` ou `SN`
+- **Formato**: 41 caracteres, codificação semelhante a Base58Check
+
+```typescript
+// Exemplos de endereços válidos
+'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS'  // Padrão da Mainnet
+'SM2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS'  // Multisig da Mainnet
+'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'  // Padrão da Testnet
+```
+
+### Endereços de Contrato
+
+Para operações de mint, use a especificação completa do contrato:
+
+```typescript
+// Formato: PRINCIPAL.NOME_DO_CONTRATO
+'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS.my-nft-collection'
+```
+
+## Tratamento de Erros
+
+### Categorias de Erros
+
+#### Erros de Codificação
+
+- **INVALID_OPERATION**: Operação desconhecida ou malformada
+- **INVALID_ADDRESS**: Formato de endereço Stacks inválido
+- **INVALID_AMOUNT**: Quantia não inteira ou negativa
+- **MISSING_REQUIRED_PARAM**: Parâmetro obrigatório não fornecido
+- **ENCODING_FAILED**: Falha na codificação Bech32m
+
+#### Erros de Decodificação
+
+- **INVALID_PROTOCOL**: A URL não começa com `web+stx:`
+- **INVALID_BECH32M**: Codificação Bech32m malformada
+- **INVALID_HRP**: A parte legível por humanos não é `stxpay`
+- **DECODING_FAILED**: Não foi possível decodificar a string de consulta
+
+#### Erros de Validação
+
+- **EXPIRED_PAYMENT**: O pagamento expirou
+- **UNSUPPORTED_TOKEN**: Token não suportado pela carteira
+- **AMOUNT_TOO_LARGE**: A quantia excede os limites razoáveis
+- **INVALID_CONTRACT**: O contrato não existe ou é inválido
+
+### Formato de Resposta de Erro
+
+```typescript
+interface StacksPayError {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
+}
+
+// Exemplo de erro
+{
+  code: 'INVALID_ADDRESS',
+  message: 'Formato de endereço Stacks inválido',
+  details: {
+    address: 'invalid-address',
+    expected: 'endereço Stacks codificado em c32'
+  }
+}
+```
+
+## Considerações de Segurança
+
+### Validação de Parâmetros
+
+Todas as implementações DEVEM:
+
+- Validar formatos de endereço antes do processamento
+- Verificar limites e formato da quantia
+- Verificar timestamps de expiração
+- Sanitizar o texto da descrição
+- Validar endereços de contrato para operações de mint
+
+### Privacidade do Memo
+
+- Memos são armazenados on-chain permanentemente
+- NÃO DEVE incluir informações sensíveis
+- As carteiras DEVEM avisar os usuários sobre a visibilidade do memo
+- Considere usar hashes IPFS para dados grandes
+
+### Pós-Condições
+
+As carteiras DEVEM implementar pós-condições para:
+
+- Limitar as quantias máximas de transferência
+- Verificar os endereços dos destinatários
+- Prevenir chamadas de contrato inesperadas
+- Validar os tipos de token
+
+Para pesquisa adicional, os desenvolvedores devem consultar a [documentação oficial de pós-condições do Clarity](https://docs.stacks.co/docs/clarity/post-conditions).
+
+### Exemplo de Pós-Condição
+
+```typescript
+// Exemplo em TypeScript com @stacks/transactions
+import { PostConditionMode, makeStandardSTXPostCondition } from '@stacks/transactions';
+
+const postCondition = makeStandardSTXPostCondition(
+  senderAddress,
+  FungibleConditionCode.Equal,
+  BigInt(amount)
+);
+```
+
+## Requisitos de Implementação
+
+### Requisitos da Carteira (DEVE)
+
+1.  **Suporte ao Protocolo**: Lidar com URLs `web+stx:` e códigos QR
+2.  **Decodificação**: Decodificar Bech32m corretamente com HRP `stxpay`
+3.  **Validação**: Validar todos os parâmetros antes da exibição
+4.  **Expiração**: Forçar timestamps `expiresAt`
+5.  **Padrões**: Usar `STX` quando o parâmetro de token for omitido
+6.  **Tratamento de Erros**: Lidar graciosamente com parâmetros desconhecidos
+
+### Requisitos do Comerciante (DEVE)
+
+1.  **Geração**: Criar URLs no lado do servidor ou via bibliotecas
+2.  **Exibição**: Fornecer códigos QR e links clicáveis
+3.  **Expiração**: Definir tempos de expiração razoáveis
+4.  **Validação**: Validar parâmetros antes da codificação
+5.  **Recuperação de Erros**: Lidar graciosamente com falhas de codificação
+
+### Requisitos da Biblioteca (DEVE)
+
+1.  **Codificação**: Implementar a codificação Bech32m correta
+2.  **Validação**: Validar todos os parâmetros
+3.  **Tratamento de Erros**: Fornecer mensagens de erro significativas
+4.  **Documentação**: Incluir exemplos de uso
+5.  **Testes**: Cobertura de teste abrangente
+
+## Compatibilidade
+
+### Suporte de Rede
+
+- **Mainnet**: Alvo principal de implantação
+- **Testnet**: Desenvolvimento e testes
+- **Redes Futuras**: Design compatível com o futuro
+
+### Compatibilidade de Carteira
+
+O StacksPay é projetado para funcionar com qualquer carteira Stacks que implemente:
+
+- Assinatura de transações Stacks
+- Manuseio de endereços c32
+- Suporte a tokens SIP-010 (para pagamentos com token)
+
+### Suporte de Navegador
+
+As URLs funcionam em todos os navegadores modernos:
+
+- Chrome 88+
+- Firefox 85+
+- Safari 14+
+- Edge 88+
+
+## Implementações de Referência
+
+### Bibliotecas Oficiais
+
+| Linguagem | Repositório | Pacote |
+|--- |--- |--- |
+| TypeScript | [stacks-pay-js](https://github.com/dantrevino/stacks-pay-js) | `stacks-pay` |
+| Python | [stacks-pay-py](https://github.com/dantrevino/stacks-pay-py) | `stacks-pay` |
+| Rust | [stacks-pay-rs](https://github.com/dantrevino/stacks-pay-rs) | `stacks-pay` |
+
+### Vetores de Teste
+
+```typescript
+// Casos de teste padrão para validação de implementação
+const testVectors = [
+  {
+    name: 'Fatura STX',
+    params: {
+      operation: 'invoice',
+      recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+      token: 'STX',
+      amount: '1000000',
+      description: 'Pagamento de teste'
+    },
+    encoded: 'web+stx:stxpay1...' // URL codificada completa
+  },
+  {
+    name: 'Link de Apoio',
+    params: {
+      operation: 'support',
+      recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+      description: 'Caixa de gorjetas'
+    },
+    encoded: 'web+stx:stxpay1...'
+  }
+  // Casos de teste adicionais...
+];
+```
+
+## Extensões Futuras
+
+### Recursos Planejados
+
+- **Pagamentos para múltiplos destinatários**: Dividir pagamentos entre vários endereços
+- **Pagamentos condicionais**: Pagamentos com condições de contrato inteligente
+- **Pagamentos recorrentes**: Fluxos de pagamento no estilo de assinatura
+- **Canais de pagamento**: Canais de pagamento no estilo Lightning
+
+### Compatibilidade com Versões Anteriores
+
+As extensões futuras manterão a compatibilidade com versões anteriores por meio de:
+
+- Adição de novos parâmetros opcionais
+- Uso de versionamento semântico
+- Exigência de que as carteiras ignorem parâmetros desconhecidos
+- Fornecimento de caminhos de migração para grandes mudanças
+
+Pronto para implementar? Comece com o guia de Início Rápido para integração básica ou mergulhe na seção de Exemplos para padrões de implementação do mundo real.

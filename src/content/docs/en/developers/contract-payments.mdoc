@@ -1,0 +1,101 @@
+---
+title: Smart Contract Payments
+description: Learn how to use StacksPay to make payments to and interact with Clarity smart contracts.
+---
+
+# Smart Contract Payments
+
+While StacksPay provides simple operations like `invoice` for direct peer-to-peer payments, its power extends to interacting with on-chain applications. You can use StacksPay to send payments that execute a specific function on a Clarity smart contract.
+
+This capability is handled by the `mint` operation. Although the name originates from its common use in NFT minting, it is a general-purpose tool for any contract call that involves a payment.
+
+## The `mint` Operation for Contract Calls
+
+Think of the `mint` operation as a way to create a shareable link that, when opened, prompts a user to sign a transaction that calls a specific smart contract function with a specific payment.
+
+### Key Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `operation` | string | Must be set to `'mint'`. |
+| `contractAddress` | string | The full address of the smart contract to be called (e.g., `SP...contract-name`). |
+| `functionName` | string | The name of the public function to invoke on the contract. |
+| `amount` | string | The amount of the specified `token` to transfer to the contract, in base units. |
+| `token` | string | The asset to be transferred (`STX` or a SIP-010 token address). |
+
+When a user clicks a StacksPay URL with these parameters, their wallet will construct a `contract-call` transaction. The `amount` and `token` are transferred *to the contract itself* as part of the call.
+
+## Example 1: Paying for an On-Chain Service
+
+Imagine a decentralized URL shortener where users must pay a 0.5 STX fee to the contract to register a new short URL. The contract has a function `register-url(short-name (string-ascii 20), full-url (string-ascii 256))`.
+
+While StacksPay doesn't yet support passing function arguments directly in the URL, you can use it for the payment portion. The application would handle the arguments separately and then generate a payment link for the fee.
+
+Here is how you would generate the StacksPay link for the fee payment:
+
+```typescript
+// TypeScript Example
+import { encodeStacksPayURL } from 'stacks-pay';
+import { stxToMicroStx } from '@stacks/transactions';
+
+const feeAmount = stxToMicroStx(0.5).toString(); // "500000"
+const contractAddress = 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS.url-shortener';
+
+const paymentURL = encodeStacksPayURL({
+  operation: 'mint',
+  contractAddress: contractAddress,
+  functionName: 'register-url', // This is for user clarity; arguments are handled off-chain
+  amount: feeAmount,
+  token: 'STX',
+  description: 'Fee for registering a short URL.',
+});
+
+console.log(paymentURL);
+// The user pays the fee via this link, and your app can then submit the transaction
+// with the actual function arguments.
+```
+
+## Example 2: Staking in a DeFi Protocol
+
+Consider a simple staking contract where users can stake STX by calling a `stake()` function. The amount of STX sent with the transaction determines the amount staked.
+
+**Use Case:** A dApp provides a simple interface for users to stake 100 STX.
+
+```python
+# Python Example
+from stacks_pay import encode_stacks_pay_url
+
+# 100 STX in micro-STX
+staking_amount_ustx = str(100 * 1_000_000)
+staking_contract = "SP...staking-protocol"
+
+def create_staking_link():
+    try:
+        staking_url = encode_stacks_pay_url({
+            "operation": "mint",
+            "contractAddress": staking_contract,
+            "functionName": "stake",
+            "amount": staking_amount_ustx,
+            "token": "STX",
+            "description": "Stake 100 STX in the protocol."
+        })
+        return staking_url
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+print(create_staking_link())
+```
+
+When the user clicks this link, their wallet will ask them to approve a call to the `stake` function on the `staking-protocol` contract, transferring 100 STX.
+
+## Security and User Experience
+
+- **Clarity is Key:** Wallets implementing StacksPay will clearly display the `contractAddress` and `functionName` to the user before they approve the transaction. This transparency is critical for security.
+- **Trusted Contracts:** Instruct users to only approve interactions with contracts they trust.
+- **No Function Arguments:** The current specification does not support encoding function arguments in the URL. This is a deliberate choice to keep the initial version simple and secure. Arguments must be handled by the application logic outside of the StacksPay URL itself.
+
+## When to Use `mint` vs. `invoice`
+
+-   Use **`invoice`** for simple payments to another user or a merchant for off-chain goods or services. The payment goes directly from one account to another.
+-   Use **`mint`** (as a contract call) when the payment must be processed by an on-chain program. The payment goes to a smart contract, which then executes code.

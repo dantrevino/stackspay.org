@@ -1,0 +1,295 @@
+---
+title: Quick Start
+description: Get started with StacksPay development quickly.
+---
+
+Get up and running with StacksPay development in minutes. This guide will have you generating and processing StacksPay URLs quickly.
+
+## Prerequisites
+
+- Node.js 16+ or Python 3.8+ or Rust 1.70+
+- Basic understanding of URL encoding and QR codes
+- Familiarity with Stacks addresses (c32 format)
+
+## Installation
+
+### TypeScript/JavaScript
+
+```bash
+npm install stacks-pay
+# or
+yarn add stacks-pay
+```
+
+### Python
+
+```bash
+pip install stacks-pay
+```
+
+### Rust
+
+```toml
+[dependencies]
+stacks-pay = "0.1"
+```
+
+## Your First StacksPay URL
+
+### Basic Invoice (TypeScript)
+
+```typescript
+import { encodeStacksPayURL, decodeStacksPayURL } from 'stacks-pay';
+
+// Create a payment request for 1 STX
+const paymentURL = encodeStacksPayURL({
+  operation: 'invoice',
+  recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+  token: 'STX',
+  amount: '1000000', // 1 STX in micro-STX
+  description: 'Coffee purchase'
+});
+
+console.log(paymentURL);
+// Output: web+stx:stxpay1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq...
+
+// Decode and verify
+const decoded = decodeStacksPayURL(paymentURL);
+console.log(decoded);
+// Output: { operation: 'invoice', recipient: 'SP2RTE...', ... }
+```
+
+### Basic Support Link (Python)
+
+```python
+from stacks_pay import encode_stacks_pay_url, decode_stacks_pay_url
+
+# Create a tip/support link (amount chosen by payer)
+payment_url = encode_stacks_pay_url({
+    'operation': 'support',
+    'recipient': 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+    'description': 'Support my work',
+    'token': 'STX'
+})
+
+print(payment_url)
+# Output: web+stx:stxpay1qpzgk5q8getf3ts3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq...
+
+# Decode
+decoded = decode_stacks_pay_url(payment_url)
+print(decoded)
+```
+
+### Basic Mint Link (Rust)
+
+```rust
+use stacks_pay::{encode_stacks_pay_url, decode_stacks_pay_url, StacksPayParams};
+
+// Create an NFT mint link
+let params = StacksPayParams {
+    operation: "mint".to_string(),
+    contract_address: Some("SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS.my-nft".to_string()),
+    function_name: Some("claim".to_string()),
+    token: Some("STX".to_string()),
+    amount: Some("500000".to_string()), // 0.5 STX mint price
+    description: Some("Mint unique NFT #1234".to_string()),
+    ..Default::default()
+};
+
+let payment_url = encode_stacks_pay_url(&params)?;
+println!("{}", payment_url);
+
+// Decode
+let decoded = decode_stacks_pay_url(&payment_url)?;
+```
+
+## Core Concepts
+
+### Operations
+
+StacksPay supports three primary operations:
+
+1.  **`invoice`** - Fixed amount payments (e.g., product purchases).
+2.  **`support`** - Variable amount payments (e.g., tips, donations).
+3.  **`mint`** - A general-purpose operation for making payments to smart contracts. While often used for NFT minting, it can be used to call any public function that requires a payment.
+
+For a detailed guide on using the `mint` operation for general contract calls, see the [Smart Contract Payments](./contract-payments.mdx) documentation.
+
+### Amount Handling
+
+Always use base units for amounts:
+- **STX**: Use micro-STX (µSTX) where 1 STX = 1,000,000 µSTX
+- **SIP-010 tokens**: Use the token's base unit (10^decimals)
+
+```typescript
+// Helper functions for STX conversion
+function stxToMicroStx(stx: number): string {
+  return (stx * 1_000_000).toString();
+}
+
+function microStxToStx(microStx: string): number {
+  return parseInt(microStx) / 1_000_000;
+}
+
+// Example usage
+const amount = stxToMicroStx(2.5); // "2500000" for 2.5 STX
+```
+
+### Address Validation
+
+Always validate Stacks addresses before creating payment URLs:
+
+```typescript
+import { validateStacksAddress } from '@stacks/transactions';
+
+function isValidStacksAddress(address: string): boolean {
+  try {
+    validateStacksAddress(address);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Use in your application
+if (!isValidStacksAddress(recipient)) {
+  throw new Error('Invalid Stacks address');
+}
+```
+
+## URL Structure
+
+StacksPay URLs follow this pattern:
+
+```
+web+stx:stxpay1[bech32m-encoded-data]
+```
+
+The encoded data contains a query string with operation parameters:
+
+```
+invoice?recipient=SP123...&token=STX&amount=1000000&description=Purchase
+```
+
+## QR Code Generation
+
+Display payment URLs as QR codes for mobile scanning:
+
+```typescript
+import QRCode from 'qrcode';
+
+async function generatePaymentQR(paymentURL: string): Promise<string> {
+  return await QRCode.toDataURL(paymentURL, {
+    errorCorrectionLevel: 'M',
+    type: 'image/png',
+    margin: 1,
+    color: {
+      dark: '#000000',
+      light: '#FFFFFF'
+    }
+  });
+}
+
+// Usage
+const qrDataURL = await generatePaymentQR(paymentURL);
+// Display in <img src={qrDataURL} alt="Payment QR Code" />
+```
+
+## Error Handling
+
+Always handle potential errors when encoding/decoding:
+
+```typescript
+import { StacksPayError } from 'stacks-pay';
+
+try {
+  const paymentURL = encodeStacksPayURL({
+    operation: 'invoice',
+    recipient: 'INVALID_ADDRESS', // This will throw an error
+    amount: '1000000',
+    token: 'STX'
+  });
+} catch (error) {
+  if (error instanceof StacksPayError) {
+    console.error('StacksPay error:', error.message);
+    // Handle specific StacksPay errors
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+## Testing Your Integration
+
+### Manual Testing
+
+1. Generate a payment URL
+2. Copy and paste into a StacksPay-compatible wallet
+3. Verify the wallet displays correct payment details
+4. Complete a test transaction on testnet
+
+### Automated Testing
+
+```typescript
+import { encodeStacksPayURL, decodeStacksPayURL } from 'stacks-pay';
+
+describe('StacksPay Integration', () => {
+  test('should create valid invoice URL', () => {
+    const params = {
+      operation: 'invoice' as const,
+      recipient: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM', // testnet address
+      token: 'STX',
+      amount: '1000000',
+      description: 'Test payment'
+    };
+    
+    const url = encodeStacksPayURL(params);
+    expect(url).toMatch(/^web\+stx:stxpay1/);
+    
+    const decoded = decodeStacksPayURL(url);
+    expect(decoded).toMatchObject(params);
+  });
+});
+```
+
+## Next Steps
+
+Now that you have the basics working:
+
+1. **Explore Examples**: Check out real-world integration patterns
+2. **Read the SDK docs**: Learn about advanced features and configuration
+3. **Set up testing**: Implement proper testing and validation
+4. **API Reference**: Dive deep into all available parameters and options
+
+## Common Gotchas
+
+### Amount Format
+```typescript
+// ❌ Wrong - using decimal STX
+amount: '1.5'
+
+// ✅ Correct - using micro-STX
+amount: '1500000'
+```
+
+### Address Format
+```typescript
+// ❌ Wrong - using legacy format
+recipient: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'
+
+// ✅ Correct - using Stacks c32 format
+recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS'
+```
+
+### URL Encoding
+```typescript
+// ❌ Wrong - manually encoding
+const description = encodeURIComponent('My product')
+
+// ✅ Correct - let the library handle it
+const params = {
+  description: 'My product' // Library handles URL encoding
+}
+```
+
+Ready to build? Start with the SDK documentation for detailed API reference and advanced usage patterns.

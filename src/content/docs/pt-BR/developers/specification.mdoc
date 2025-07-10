@@ -1,0 +1,350 @@
+---
+title: Especificação do StacksPay
+description: Especificação técnica para o padrão de solicitação de pagamento StacksPay
+---
+
+Encontre o SIP proposto oficial no repositório Stacks SIP: [https://github.com/stacksgov/sips/pull/202](https://github.com/stacksgov/sips/pull/202)
+
+## Preâmbulo
+
+Número do SIP: a ser atribuído
+
+Título: Stacks Pay - Um Padrão de Solicitação de Pagamento para Pagamentos na Blockchain da Stacks
+
+Autor: Dan Trevino &lt;dantrevino@gmail.com&gt;
+
+Consideração: Técnica
+
+Tipo: Padrão
+
+Status: Rascunho
+
+Criado em: 24 de setembro de 2024
+
+Camada: Aplicativo
+
+Licença: CC0-1.0: Creative Commons CC0 1.0 Universal
+
+Discussão para: https://github.com/stacksgov/sips
+
+Assinatura:
+
+## Resumo
+
+**Stacks Pay** é um padrão de solicitação de pagamento proposto para a blockchain da Stacks. O padrão visa criar pacotes fáceis e seguros de informações de transação que podem ser compartilhados off-chain sem problemas, simplificando as interações de pagamento entre pagadores e destinatários, fornecendo um método padronizado para codificar, decodificar e processar solicitações de pagamento. Ao padronizar a estrutura e os parâmetros das solicitações de pagamento, o Stacks Pay garante a interoperabilidade entre carteiras e aplicativos no ecossistema da Stacks.
+
+Esta proposta não requer nenhuma alteração na operação atual da blockchain da Stacks. Em vez disso, considere estes como métodos de conveniência para agrupar as informações de transação existentes da Stacks, tornando-as facilmente compartilháveis.
+
+### Licença e Copyright
+
+Os direitos autorais deste SIP são mantidos pela Stacks Open Internet Foundation. Este SIP é disponibilizado sob os termos da licença Creative Commons CC0 1.0 Universal, disponível em [https://creativecommons.org/publicdomain/zero/1.0/](https://creativecommons.org/publicdomain/zero/1.0/)
+
+### Terminologia
+
+As palavras-chave "DEVE", "NÃO DEVE", "OBRIGATÓRIO", "DEVERÁ", "NÃO DEVERÁ", "DEVE", "NÃO DEVE", "RECOMENDADO", "PODE" e "OPCIONAL" neste documento devem ser interpretadas de acordo com a RFC 2119.
+
+## Introdução
+
+O ecossistema da Stacks requer um protocolo padronizado para geração e processamento de solicitações de pagamento para apoiar sua crescente adoção. Embora os ecossistemas de blockchain estabelecidos tenham implementado padrões de solicitação de pagamento que permitem recursos como reutilização de solicitações, manuseio de metadados e verificação criptográfica, a Stacks atualmente carece de tal protocolo. Essa ausência de um padrão unificado obriga os desenvolvedores a implementar soluções personalizadas, arriscando a fragmentação do ecossistema por meio de implementações incompatíveis e fluxos de pagamento inconsistentes.
+
+**Stacks Pay** aborda essa lacuna introduzindo um padrão de solicitação de pagamento adaptado especificamente para a blockchain da Stacks. O padrão simplifica o processo de envio e recebimento de pagamentos, aprimora a interoperabilidade entre carteiras e aplicativos e aumenta a segurança, fornecendo mecanismos para vincular transações a solicitações de pagamento.
+
+O Stacks Pay _não_ define contratos inteligentes que podem ser usados para facilitar funções específicas, como assinaturas ou mints de NFT. O Stacks Pay está estritamente focado em definir a estrutura e a codificação das informações de pagamento da transação.
+
+## Operações
+
+O Stacks Pay define várias operações padrão que especificam o tipo de ação de pagamento a ser executada. Cada tipo de operação possui parâmetros obrigatórios e opcionais específicos.
+
+### `support`
+
+**Função**: Uma solicitação aberta e reutilizável. Permite que o pagador especifique o valor e, opcionalmente, o token, adequado para doações, gorjetas ou presentes.
+
+**Parâmetros obrigatórios:**
+
+- operação: 'support'
+
+- destinatário: Um endereço Stacks válido.
+
+- Se o parâmetro do token não for 'STX', o functionName assume como padrão 'transfer' pela carteira.
+
+**Parâmetros opcionais:**
+
+- token: 'STX' ou um endereço de contrato SIP-010 válido. Se não for fornecido, o padrão é 'STX'.
+
+- descrição: PODE ser incluído para fornecer contexto adicional para a solicitação de pagamento.
+
+- expiraEm: PODE ser incluído; as carteiras NÃO DEVEM processar solicitações de pagamento após o tempo de expiração.
+
+- memorando: PODE ser incluído; NÃO DEVE incluir informações pessoais.
+
+**Parâmetros a serem ignorados:**
+
+- valor, nomeDoContrato, dataDeVencimento, nomeDaFunção, númeroDaFatura. As carteiras DEVEM ignorar esses parâmetros, se presentes.
+
+### `invoice`
+
+**Função:** Representa uma solicitação de pagamento, como uma fatura para pagamentos P2P ou compras de produtos.
+
+**Parâmetros obrigatórios:**
+
+- operação: 'invoice'
+
+- destinatário: Um endereço Stacks válido.
+
+- token: DEVE ser 'STX' ou um endereço de contrato SIP-010 válido.
+
+- valor: O valor a ser pago.
+
+**Parâmetros opcionais:**
+
+- descrição: PODE ser incluído para fornecer contexto para a solicitação de pagamento.
+
+- expiraEm: PODE ser incluído; se incluído, as carteiras NÃO DEVEM processar solicitações de pagamento após o tempo de expiração.
+
+- númeroDaFatura: PODE ser incluído como um identificador.
+
+- dataDeVencimento: PODE ser incluída.
+
+- memorando: PODE ser incluído. NÃO DEVE incluir informações pessoais.
+
+**Parâmetros a serem ignorados:**
+
+nomeDoContrato, nomeDaFunção: As carteiras DEVEM ignorar esses parâmetros, se presentes.
+
+### `mint`
+
+**Função:** Representa uma solicitação de cunhagem de token não fungível.
+
+**Parâmetros obrigatórios:**
+
+- operação: 'mint'
+
+- nomeDoContrato: Um endereço de contrato SIP-009 válido.
+
+- nomeDaFunção: Uma função de contrato pública, normalmente `mint` ou `claim`
+
+- token: DEVE ser 'STX' ou um nome de contrato SIP-010 válido.
+
+- valor: O valor a ser pago.
+
+**Parâmetros opcionais:**
+
+- destinatário: PODE ser incluído; se presente, DEVE ser um endereço Stacks válido. O NFT será cunhado para o endereço especificado.
+
+- descrição: PODE ser incluído para fornecer contexto para a solicitação de pagamento
+
+- expiraEm: PODE ser incluído. Se incluído, as carteiras NÃO DEVEM processar links após a data/hora de expiração.
+
+- númeroDaFatura: PODE ser incluído pelo criador do link para rastrear solicitações individuais.
+
+- memorando: PODE ser incluído. NÃO DEVE incluir informações pessoais.
+
+**Parâmetros a serem ignorados:**
+
+- nomeDoContrato, nomeDaFunção, dataDeVencimento: As carteiras DEVEM ignorar esses parâmetros, se presentes.
+
+### Operações personalizadas
+
+Os aplicativos **PODEM** definir operações personalizadas para casos de uso específicos. Os tipos de operação personalizados **DEVEM** ser prefixados para evitar conflitos de nomenclatura (por exemplo, 'custom-example').
+
+- **Lidando com operações não reconhecidas**: Se uma carteira encontrar um tipo de operação não reconhecido, ela **DEVE**:
+
+- **Avisar o usuário**: Informar ao usuário que o tipo de operação não é reconhecido.
+
+- **Fornecer padrões seguros**: Padrão para um fluxo de pagamento padrão, se possível.
+
+- **Falhar graciosamente**: Evitar comportamento inesperado ou riscos de segurança.
+
+### Tabela de parâmetros (resumo)
+
+| Operação | token | destinatário | valor | descrição | memorando | expiraEm | nomeDoContrato | nomeDaFunção | dataDeVencimento |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| support | O | R | I | O | O | I | I | I | I |
+| invoice | R | R | R | O | O | O | I | I | O |
+| mint | I | O | R | O | O | O | R | R | I |
+| custom | O* | O* | O* | O* | O* | O* | O* | O* | O* |
+
+```
+R - obrigatório
+O - opcional conforme determinado
+I - ignorado
+O* - links personalizados são definidos por aplicativo
+```
+
+### Tipos de token
+
+O parâmetro `token` indica o tipo de token para o pagamento e **DEVE** ser um dos seguintes:
+
+- 'STX': Para pagamentos usando o token STX nativo.
+
+- Um endereço de contrato SIP-010 válido: Para pagamentos usando tokens fungíveis compatíveis com SIP-010.
+
+Observação: os endereços de contrato SIP-010 devem estar no formato `PRINCIPAL_DO_CONTRATO`.`NOME_DO_CONTRATO`, sem o identificador de contrato associado.
+
+### Esquema de URL
+
+O esquema de URL do Stacks Pay **DEVE** usar o protocolo personalizado `web+stx:`, seguido pela codificação bech32m de uma `operação` e parâmetros de consulta que codificam os detalhes do pagamento com `stx` como a parte legível por humanos (hrp) da codificação. A ordem dos parâmetros não importa.
+
+**Formato:**
+
+Formato da string da url antes da codificação:
+
+`<operação>?destinatário=<destinatário>&token=<token>&valor=<valor>[&parâmetros_adicionais]`
+
+Por exemplo, aqui está a url não codificada usando o token 'STX':
+
+`fatura?destinatário=SP3FBR...&token=STX&valor=1000&descrição=Pagamento%20por%20Serviços`
+
+E aqui está um exemplo usando o Nothing Token SIP-010:
+
+`fatura?operação=fatura&destinatário=SP3FBR...&token=SP32AEEF6WW5Y0NMJ1S8SBSZDAY8R5J32NBZFPKKZ.nope&valor=1000&descrição=Pagamento+por+serviços`
+
+- **`operação`**: Especifica o tipo de ação ou transação. **DEVE** ser incluído e ser um valor de string.
+
+- **Parâmetros de consulta**: Os parâmetros de pagamento são anexados como parâmetros de consulta codificados por URL. Consulte os tipos de operação específicos para saber quais são incluídos para quais operações.
+
+Exemplo de url codificada do Stack Pay:
+
+`stx1wajky2mnw3u8qcte8ghj76twwehkjcm98ahhqetjv96xjmmw845kuan0d93k2fnjv43kjurfv4h8g02n2qe9y4z9xarryv2wxer4zdjzgfd9yd62gar4y46p2sc9gd23xddrjkjgggu5k5jnye6x76m9dc74x4zcyesk6mm4de6r6vfsxqczver9wd3hy6tsw35k7m3a2pshjmt9de6zken0wg4hxetjwe5kxetnyejhsurfwfjhxst585erqv3595cnytfnx92ryve9xdqn2wf9xdqn2w26juk65n`
+
+E aqui está um exemplo de URL codificada final adequada para compartilhamento como um link ou código QR.
+
+`web+stx:stx1wajky2mnw3u8qcte8ghj76twwehkjcm98ahhqetjv96xjmmw845kuan0d9...`
+
+### Codificação e decodificação
+
+As URLs do Stacks Pay **DEVEM** ser codificadas usando a **codificação Bech32m** com a parte legível por humanos (HRP) definida como 'stx' e um `limite` de 512. Isso garante compatibilidade e integridade dos dados, tornando-o adequado para códigos QR e plataformas com limitações de URL.
+
+### Valores variáveis e doações
+
+- Se o parâmetro `valor` não for especificado (por exemplo, para doações), as carteiras **DEVEM** solicitar ao usuário que insira o valor desejado antes de prosseguir.
+
+- Os aplicativos **DEVEM** validar o valor inserido para evitar erros ou transações fraudulentas.
+
+### Considerações de segurança
+
+- **Uso de pós-condições**: os aplicativos **DEVEM** usar pós-condições em todas as transferências de ativos para garantir que apenas os ativos e valores pretendidos sejam transferidos.
+
+- **Validação de dados**: carteiras e aplicativos **DEVEM** validar todos os parâmetros para evitar ataques de injeção ou dados malformados.
+
+- **Manuseio de tokens**: os aplicativos **DEVEM** lidar com diferentes tipos de token de forma apropriada, garantindo que o token correto seja usado na transação.
+
+- **Privacidade do campo de memorando**: informações confidenciais **NÃO DEVEM** ser incluídas no campo de memorando, pois são visíveis ao público.
+
+### Compatibilidade com versões anteriores
+
+O Stacks Pay é uma nova especificação e não requer alterações na operação principal da blockchain da Stacks ou atualizações no nível do protocolo. As transações enviadas via Stacks Pay permanecem totalmente compatíveis com a blockchain da Stacks. No entanto, carteiras e aplicativos que não implementam o Stacks Pay não reconhecerão ou processarão URLs ou solicitações de pagamento do Stacks Pay.
+
+## Implementação
+
+### Integração de carteira
+
+As carteiras que suportam o Stacks Pay **DEVEM** implementar o seguinte:
+
+- **Manuseio de URL**: Reconhecer e analisar URLs codificadas em Bech32m `web+stx:`.
+
+- **Extração de parâmetros**: Extrair parâmetros de pagamento de acordo com a especificação.
+
+- **Manuseio de operações**: Suportar tipos de operação padrão e lidar com operações personalizadas de forma apropriada.
+
+- **Interface do usuário**: Apresentar uma interface do usuário que exiba os detalhes do pagamento e permita que o usuário confirme ou cancele o pagamento.
+
+- **Suporte a tokens**: Lidar com pagamentos em tokens STX e fungíveis SIP-010, interagindo com contratos inteligentes conforme necessário.
+
+- **Uso de pós-condições**: Incluir pós-condições apropriadas em transações que envolvem transferências de ativos.
+
+- **Tratamento de erros**: Fornecer mensagens de erro informativas se a URL for inválida ou se os parâmetros necessários estiverem ausentes.
+
+### Integração de comerciante
+
+Os comerciantes e prestadores de serviços podem integrar o Stacks Pay em suas plataformas por meio de:
+
+- **Geração de solicitações de pagamento**: Criação de URLs do Stacks Pay com todos os parâmetros necessários.
+
+- **Compartilhamento de solicitações de pagamento**: Exibição da URL do Stacks Pay como um código QR ou hiperlink.
+
+- **Processamento de pagamentos**: Monitoramento de transações recebidas e verificação de pagamentos.
+
+### Integração de aplicativos
+
+Os aplicativos que facilitam os pagamentos podem incorporar o Stacks Pay por meio de:
+
+- **Fornecimento de links de pagamento**: Geração de URLs do Stacks Pay para transações compartilháveis.
+
+- **Orientação de fluxos de pagamento**: Implementação de fluxos de pagamento que orientam os usuários durante o processo de pagamento usando URLs do Stacks Pay.
+
+- **Manuseio de tokens SIP-010**: Interação com contratos inteligentes de token ao lidar com tokens SIP-010.
+
+## Implementação de referência
+
+Uma implementação de referência do padrão Stacks Pay está disponível para auxiliar os desenvolvedores na integração da especificação em seus aplicativos. As implementações abrangem várias linguagens de programação para atender a diferentes ambientes de desenvolvimento.
+
+### Código fonte
+
+As implementações de referência podem ser encontradas nos seguintes repositórios:
+
+- **TypeScript**: [stacks-pay-js](https://github.com/dantrevino/stacks-pay-js)
+
+- **Python**: [stacks-pay-py](https://github.com/dantrevino/stacks-pay-py)
+
+- **Rust**: [stacks-pay-rs](https://github.com/dantrevino/stacks-pay-rs)
+
+Esses repositórios contêm o código-fonte que demonstra como gerar e analisar URLs do Stacks Pay, lidar com a codificação Bech32m, de acordo com a especificação.
+
+## Ratificação
+
+Este SIP é considerado ratificado após:
+
+1.  **Aprovação do SIP e revisão da comunidade**: O SIP passa por uma revisão e aprovação formal pelos órgãos de governança designados da Stacks e é discutido publicamente para coletar feedback.
+
+2.  **Implementação de referência**: Pelo menos uma implementação de referência do padrão Stacks Pay é desenvolvida e disponibilizada publicamente.
+
+3.  **Suporte de carteira**: Pelo menos uma carteira Stacks amplamente utilizada implementa o suporte para o esquema de URL do Stacks Pay.
+
+4.  **Adoção por comerciantes**: Pelo menos dez comerciantes ou dois prestadores de serviços integram o Stacks Pay em seus processos de vendas.
+
+5.  **Documentação**: É fornecida documentação abrangente, incluindo guias de integração e exemplos de código.
+
+## Economia
+
+Embora o Stacks Pay seja um padrão no nível do aplicativo que não requer alterações na operação principal da blockchain da Stacks ou afete a emissão de tokens, sua adoção pode ter impactos econômicos indiretos no ecossistema da Stacks. Essas considerações econômicas potenciais incluem:
+
+- **Aumento do volume de transações**: A simplificação das solicitações de pagamento pode levar a mais transações, aumentando o total de taxas de transação coletadas pelos mineradores e aprimorando a segurança da rede.
+
+- **Utilidade aprimorada do token**: Mecanismos de pagamento aprimorados podem aumentar a utilidade e a demanda por tokens STX e SIP-010, o que pode afetar seu valor de mercado.
+
+- **Crescimento do ecossistema**: A padronização das solicitações de pagamento pode atrair mais comerciantes e usuários para o ecossistema da Stacks, promovendo o crescimento econômico.
+
+- **Oportunidades de negócios**: Desenvolvedores e empresas podem encontrar novas oportunidades para criar serviços que utilizam o Stacks Pay, contribuindo para a saúde e a diversidade geral do ecossistema.
+
+## Links
+
+### Trabalho relacionado
+
+- **SIP-009: Tokens não fungíveis**: Define o padrão para tokens não fungíveis na blockchain da Stacks.
+
+- **SIP-010: Tokens fungíveis**: Define o padrão para tokens fungíveis na blockchain da Stacks.
+
+- **Protocolo de pagamento Bitcoin (BIP 21)**: Um esquema de URI para pagamentos em Bitcoin, inspirando o uso de um esquema de URI personalizado no Stacks Pay.
+
+- **Faturas da Lightning Network (BOLT-11 e BOLT-12)**: Especificam formatos de fatura para a Lightning Network, suportando recursos como solicitações de pagamento reutilizáveis e segurança aprimorada. O Stacks Pay se inspira nesses protocolos para suportar valores variáveis e solicitações de pagamento reutilizáveis.
+
+- **BOLT-11**: Define um padrão para faturas da Lightning Network, permitindo transações off-chain com informações de pagamento detalhadas.
+
+- **BOLT-12**: Introduz ofertas e faturas que aprimoram a privacidade e a funcionalidade em relação ao BOLT-11, permitindo solicitações de pagamento mais flexíveis.
+
+- **Ethereum EIP-681**: Um padrão para representar solicitações de pagamento Ethereum como URIs, que influencia o design do esquema de URL do Stacks Pay.
+
+### Recursos adicionais
+
+- [RFC 2119 - Palavras-chave para uso em RFCs para indicar níveis de requisito](https://www.ietf.org/rfc/rfc2119.txt)
+
+- [Especificação SIP-009](https://github.com/stacksgov/sips/blob/main/sips/sip-009/sip-009-nft-standard.md)
+
+- [Especificação SIP-010](https://github.com/stacksgov/sips/blob/main/sips/sip-010/sip-010-fungible-token-standard.md)
+
+- [Especificação Bech32m](https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki)
+
+- [Especificação BOLT-11](https://github.com/lightning/bolts/blob/master/11-payment-encoding.md)
+
+- [Especificação BOLT-12](https://github.com/lightning/bolts/blob/master/12-offer-encoding.md)

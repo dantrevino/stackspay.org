@@ -1,0 +1,560 @@
+---
+title: Implementation Notes
+description: Detailed implementation guidance for wallets, merchants, and developers integrating StacksPay.
+---
+
+# Implementation Notes
+
+This guide provides practical implementation details for developers building StacksPay support into wallets, merchant systems, and applications.
+
+## Wallet Implementation
+
+### Required Features
+
+#### Protocol Handler Registration
+
+```javascript
+// Register protocol handler for web+stx: scheme
+navigator.registerProtocolHandler(
+  'web+stx',
+  'https://wallet.example.com/pay?url=%s',
+  'My Stacks Wallet'
+);
+```
+
+#### URL Parsing and Validation
+
+```javascript
+function parseStacksPayURL(url) {
+  // 1. Validate protocol prefix
+  if (!url.startsWith('web+stx:')) {
+    throw new Error('Invalid protocol scheme');
+  }
+  
+  // 2. Extract encoded data
+  const encodedData = url.substring(8); // Remove 'web+stx:'
+  
+  // 3. Bech32m decode
+  const decoded = bech32m.decode(encodedData);
+  if (decoded.prefix !== 'stxpay') {
+    throw new Error('Invalid HRP');
+  }
+  
+  // 4. Parse query string
+  const queryString = Buffer.from(decoded.data).toString();
+  const params = new URLSearchParams(queryString);
+  
+  return {
+    operation: params.get('operation'),
+    recipient: params.get('recipient'),
+    amount: params.get('amount'),
+    token: params.get('token') || 'STX',
+    // ... other parameters
+  };
+}
+```
+
+### Wallet Requirements
+
+#### MUST Requirements
+
+1. **Handle protocol scheme**: Support `web+stx:` links and QR codes end-to-end
+2. **Enforce expiration**: Check `expiresAt` parameter and reject expired requests
+3. **Default token**: Default missing `token` parameter to **STX**
+4. **Ignore unknown parameters**: Unknown parameters should be ignored, not cause errors
+5. **User confirmation**: Require explicit user approval for all payments
+
+#### Parameter Validation
+
+```javascript
+function validateParameters(params) {
+  const { operation, recipient, amount, token, expiresAt } = params;
+  
+  // Validate operation type
+  if (!['support', 'invoice', 'mint'].includes(operation)) {
+    if (!operation.startsWith('custom:')) {
+      throw new Error('Unknown operation type');
+    }
+  }
+  
+  // Validate recipient address
+  if (!isValidStacksAddress(recipient)) {
+    throw new Error('Invalid recipient address');
+  }
+  
+  // Validate amount (if present)
+  if (amount && (!Number.isInteger(+amount) || +amount <= 0)) {
+    throw new Error('Invalid amount');
+  }
+  
+  // Validate expiration
+  if (expiresAt && new Date(expiresAt) < new Date()) {
+    throw new Error('Payment request has expired');
+  }
+  
+  // Validate token format
+  if (token !== 'STX' && !isValidContractAddress(token)) {
+    throw new Error('Invalid token specification');
+  }
+}
+```
+
+#### Transaction Building
+
+```javascript
+function buildTransaction(params) {
+  const { operation, recipient, amount, token, memo } = params;
+  
+  switch (operation) {
+    case 'support':
+      // Prompt user for amount
+      const userAmount = await promptForAmount();
+      return buildTokenTransfer(recipient, userAmount, token, memo);
+      
+    case 'invoice':
+      // Use specified amount
+      return buildTokenTransfer(recipient, amount, token, memo);
+      
+    case 'mint':
+      // Call smart contract function
+      return buildContractCall(
+        params.contractAddress,
+        params.functionName,
+        [], // Additional args would go here
+        amount || 0
+      );
+      
+    default:
+      throw new Error('Unsupported operation');
+  }
+}
+```
+
+## Merchant Implementation
+
+### Payment Request Generation
+
+#### Server-Side Generation (Recommended)
+
+```javascript
+const { encodeStacksPayURL } = require('stacks-pay');
+
+// Generate invoice
+function generateInvoice(orderId, amount, description) {
+  return encodeStacksPayURL({
+    operation: 'invoice',
+    recipient: process.env.MERCHANT_ADDRESS,
+    token: 'STX',
+    amount: amount.toString(),
+    description: description,
+    invoiceNumber: orderId,
+    expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes
+  });
+}
+
+// Generate donation link
+function generateDonationLink(description) {
+  return encodeStacksPayURL({
+    operation: 'support',
+    recipient: process.env.DONATION_ADDRESS,
+    description: description
+  });
+}
+```
+
+#### Client-Side Generation
+
+```javascript
+// For simple use cases, can generate client-side
+function createTipButton(recipient, description) {
+  const paymentURL = encodeStacksPayURL({
+    operation: 'support',
+    recipient: recipient,
+    description: description
+  });
+  
+  return `<a href="${paymentURL}" class="tip-button">Tip with STX</a>`;
+}
+```
+
+### QR Code Display
+
+```javascript
+function displayQRCode(paymentURL) {
+  // Use uppercase encoding for better scanning
+  const qrCodeData = paymentURL.toUpperCase();
+  
+  // Generate QR code with appropriate error correction
+  const qrCode = new QRCode({
+    text: qrCodeData,
+    width: 256,
+    height: 256,
+    correctLevel: QRCode.CorrectLevel.M
+  });
+  
+  return qrCode.toDataURL();
+}
+```
+
+### Payment Verification
+
+```javascript
+// Monitor blockchain for payment
+function verifyPayment(invoiceNumber, expectedAmount, recipientAddress) {
+  // Implementation depends on your blockchain monitoring setup
+  return new Promise((resolve, reject) => {
+    // Monitor for transactions to recipientAddress
+    // Verify amount matches expectedAmount
+    // Check memo field for invoiceNumber
+    // Resolve when confirmed
+  });
+}
+```
+
+## Integration Examples
+
+### E-commerce Integration
+
+```javascript
+// Add to checkout flow
+class CheckoutController {
+  async processStacksPayment(orderData) {
+    const paymentURL = encodeStacksPayURL({
+      operation: 'invoice',
+      recipient: this.merchantAddress,
+      token: 'STX',
+      amount: (orderData.total * 1000000).toString(), // Convert to µSTX
+      description: `Order #${orderData.id}`,
+      invoiceNumber: orderData.id,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    });
+    
+    // Display QR code and payment link
+    await this.displayPaymentInterface(paymentURL);
+    
+    // Monitor for payment
+    return this.waitForPayment(orderData.id);
+  }
+}
+```
+
+### Content Creator Platform
+
+```javascript
+// Tip jar implementation
+class TipJar {
+  constructor(creatorAddress) {
+    this.creatorAddress = creatorAddress;
+  }
+  
+  generateTipURL(customMessage) {
+    return encodeStacksPayURL({
+      operation: 'support',
+      recipient: this.creatorAddress,
+      description: customMessage || 'Support this creator'
+    });
+  }
+  
+  renderTipButton() {
+    const tipURL = this.generateTipURL();
+    return `
+      <div class="tip-container">
+        <a href="${tipURL}" class="tip-button">💰 Tip with STX</a>
+        <img src="${this.generateQRCode(tipURL)}" alt="Tip QR Code" />
+      </div>
+    `;
+  }
+}
+```
+
+### NFT Marketplace
+
+```javascript
+// NFT minting integration
+class NFTMinter {
+  generateMintURL(contractAddress, tokenId, price) {
+    return encodeStacksPayURL({
+      operation: 'mint',
+      contractAddress: contractAddress,
+      functionName: 'claim',
+      token: 'STX',
+      amount: price.toString(),
+      description: `Mint NFT #${tokenId}`,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1 hour
+    });
+  }
+}
+```
+
+## Testing and Validation
+
+### Test Vectors
+
+```javascript
+// Test valid URL parsing
+const testCases = [
+  {
+    name: 'Simple support request',
+    url: 'web+stx:stxpay1...',
+    expected: {
+      operation: 'support',
+      recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS'
+    }
+  },
+  {
+    name: 'Invoice with amount',
+    url: 'web+stx:stxpay1...',
+    expected: {
+      operation: 'invoice',
+      recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+      amount: '1000000',
+      token: 'STX'
+    }
+  }
+];
+
+// Test error handling
+const errorCases = [
+  {
+    name: 'Invalid protocol',
+    url: 'https://example.com/pay',
+    expectedError: 'Invalid protocol scheme'
+  },
+  {
+    name: 'Expired request',
+    url: 'web+stx:stxpay1...',
+    expectedError: 'Payment request has expired'
+  }
+];
+```
+
+### Integration Testing
+
+```javascript
+// Test end-to-end flow
+class IntegrationTest {
+  async testPaymentFlow() {
+    // 1. Generate payment URL
+    const paymentURL = this.generateTestPaymentURL();
+    
+    // 2. Parse URL
+    const parsed = parseStacksPayURL(paymentURL);
+    
+    // 3. Validate parameters
+    validateParameters(parsed);
+    
+    // 4. Build transaction
+    const transaction = buildTransaction(parsed);
+    
+    // 5. Verify transaction details
+    this.verifyTransaction(transaction, parsed);
+  }
+}
+```
+
+## Performance Considerations
+
+### URL Length Optimization
+
+```javascript
+// Minimize URL length for QR codes
+function optimizeForQR(params) {
+  // Use shorter parameter names when possible
+  // Omit optional parameters with default values
+  // Use base64 encoding for long descriptions
+  
+  const optimized = {
+    operation: params.operation,
+    recipient: params.recipient,
+    amount: params.amount
+  };
+  
+  // Only include non-default values
+  if (params.token && params.token !== 'STX') {
+    optimized.token = params.token;
+  }
+  
+  return optimized;
+}
+```
+
+### Caching Strategies
+
+```javascript
+// Cache generated URLs for repeated use
+class URLCache {
+  constructor() {
+    this.cache = new Map();
+  }
+  
+  get(key) {
+    const cached = this.cache.get(key);
+    if (cached && !this.isExpired(cached)) {
+      return cached.url;
+    }
+    return null;
+  }
+  
+  set(key, url, ttl = 300000) { // 5 minutes default
+    this.cache.set(key, {
+      url: url,
+      expires: Date.now() + ttl
+    });
+  }
+}
+```
+
+## Reference Implementations
+
+### JavaScript/TypeScript
+
+**Repository**: https://github.com/dantrevino/stacks-pay-js
+
+**Installation**:
+```bash
+npm install stacks-pay
+```
+
+**Usage**:
+```javascript
+import { encodeStacksPayURL, parseStacksPayURL } from 'stacks-pay';
+
+const paymentURL = encodeStacksPayURL({
+  operation: 'invoice',
+  recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+  token: 'STX',
+  amount: '1000000'
+});
+
+const parsed = parseStacksPayURL(paymentURL);
+```
+
+### Python
+
+**Repository**: https://github.com/dantrevino/stacks-pay-py
+
+**Installation**:
+```bash
+pip install stacks-pay
+```
+
+**Usage**:
+```python
+from stacks_pay import encode_stacks_pay_url, parse_stacks_pay_url
+
+payment_url = encode_stacks_pay_url({
+    'operation': 'invoice',
+    'recipient': 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+    'token': 'STX',
+    'amount': '1000000'
+})
+
+parsed = parse_stacks_pay_url(payment_url)
+```
+
+### Rust
+
+**Repository**: https://github.com/dantrevino/stacks-pay-rs
+
+**Installation**:
+```toml
+[dependencies]
+stacks-pay = "0.1.0"
+```
+
+**Usage**:
+```rust
+use stacks_pay::{encode_stacks_pay_url, parse_stacks_pay_url, PaymentRequest};
+
+let request = PaymentRequest {
+    operation: "invoice".to_string(),
+    recipient: "SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS".to_string(),
+    token: Some("STX".to_string()),
+    amount: Some("1000000".to_string()),
+    ..Default::default()
+};
+
+let payment_url = encode_stacks_pay_url(&request)?;
+let parsed = parse_stacks_pay_url(&payment_url)?;
+```
+
+## Common Implementation Pitfalls
+
+### 1. Amount Handling
+
+**Problem**: Using floating-point arithmetic for amounts
+**Solution**: Always use integers and base units (µSTX)
+
+```javascript
+// Wrong
+const amount = 1.5; // Floating point
+const microSTX = amount * 1000000; // Precision loss
+
+// Correct
+const amount = "1500000"; // String integer
+const microSTX = parseInt(amount); // Safe conversion
+```
+
+### 2. Expiration Handling
+
+**Problem**: Not validating expiration times
+**Solution**: Always check `expiresAt` before processing
+
+```javascript
+// Wrong
+function processPayment(params) {
+  return buildTransaction(params); // No expiration check
+}
+
+// Correct
+function processPayment(params) {
+  if (params.expiresAt && new Date(params.expiresAt) < new Date()) {
+    throw new Error('Payment request has expired');
+  }
+  return buildTransaction(params);
+}
+```
+
+### 3. Parameter Validation
+
+**Problem**: Assuming all parameters are valid
+**Solution**: Validate all inputs thoroughly
+
+```javascript
+// Wrong
+function parseAmount(amount) {
+  return parseInt(amount); // No validation
+}
+
+// Correct
+function parseAmount(amount) {
+  if (!amount || typeof amount !== 'string') {
+    throw new Error('Amount must be a string');
+  }
+  const parsed = parseInt(amount);
+  if (isNaN(parsed) || parsed <= 0) {
+    throw new Error('Amount must be a positive integer');
+  }
+  return parsed;
+}
+```
+
+## Deployment Checklist
+
+### Pre-deployment
+
+- [ ] Implement all required validation
+- [ ] Test with various wallet implementations
+- [ ] Verify QR code generation and scanning
+- [ ] Test error handling for malformed URLs
+- [ ] Validate against test vectors
+- [ ] Security audit of implementation
+
+### Post-deployment
+
+- [ ] Monitor for parsing errors
+- [ ] Track payment success rates
+- [ ] Monitor for security issues
+- [ ] Update documentation as needed
+- [ ] Gather user feedback
+- [ ] Plan for protocol updates

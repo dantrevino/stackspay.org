@@ -1,0 +1,101 @@
+---
+title: Pagamentos de Contrato Inteligente
+description: Aprenda a usar o StacksPay para fazer pagamentos e interagir com contratos inteligentes Clarity.
+---
+
+# Pagamentos de Contrato Inteligente
+
+Embora o StacksPay forneça operações simples como `invoice` para pagamentos diretos ponto a ponto, seu poder se estende à interação com aplicativos on-chain. Você pode usar o StacksPay para enviar pagamentos que executam uma função específica em um contrato inteligente Clarity.
+
+Essa capacidade é tratada pela operação `mint`. Embora o nome se origine de seu uso comum na criação de NFTs, é uma ferramenta de propósito geral para qualquer chamada de contrato que envolva um pagamento.
+
+## A Operação `mint` para Chamadas de Contrato
+
+Pense na operação `mint` como uma forma de criar um link compartilhável que, quando aberto, solicita que um usuário assine uma transação que chama uma função específica de contrato inteligente com um pagamento específico.
+
+### Parâmetros Chave
+
+| Parâmetro | Tipo | Descrição |
+| :--- | :--- | :--- |
+| `operation` | string | Deve ser definido como `'mint'`. |
+| `contractAddress` | string | O endereço completo do contrato inteligente a ser chamado (por exemplo, `SP...nome-do-contrato`). |
+| `functionName` | string | O nome da função pública a ser invocada no contrato. |
+| `amount` | string | A quantidade do `token` especificado a ser transferido para o contrato, em unidades base. |
+| `token` | string | O ativo a ser transferido (`STX` ou um endereço de token SIP-010). |
+
+Quando um usuário clica em uma URL do StacksPay com esses parâmetros, sua carteira construirá uma transação `contract-call`. O `amount` e o `token` são transferidos *para o próprio contrato* como parte da chamada.
+
+## Exemplo 1: Pagando por um Serviço On-Chain
+
+Imagine um encurtador de URL descentralizado onde os usuários devem pagar uma taxa de 0.5 STX ao contrato para registrar uma nova URL curta. O contrato tem uma função `register-url(short-name (string-ascii 20), full-url (string-ascii 256))`.
+
+Embora o StacksPay ainda não suporte a passagem de argumentos de função diretamente na URL, você pode usá-lo para a parte do pagamento. O aplicativo lidaria com os argumentos separadamente e, em seguida, geraria um link de pagamento para a taxa.
+
+Veja como você geraria o link do StacksPay para o pagamento da taxa:
+
+```typescript
+// Exemplo em TypeScript
+import { encodeStacksPayURL } from 'stacks-pay';
+import { stxToMicroStx } from '@stacks/transactions';
+
+const feeAmount = stxToMicroStx(0.5).toString(); // "500000"
+const contractAddress = 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS.url-shortener';
+
+const paymentURL = encodeStacksPayURL({
+  operation: 'mint',
+  contractAddress: contractAddress,
+  functionName: 'register-url', // Isso é para clareza do usuário; os argumentos são tratados fora da cadeia
+  amount: feeAmount,
+  token: 'STX',
+  description: 'Taxa para registrar uma URL curta.',
+});
+
+console.log(paymentURL);
+// O usuário paga a taxa através deste link, e seu aplicativo pode então enviar a transação
+// com os argumentos reais da função.
+```
+
+## Exemplo 2: Staking em um Protocolo DeFi
+
+Considere um contrato de staking simples onde os usuários podem fazer stake de STX chamando uma função `stake()`. A quantidade de STX enviada com a transação determina a quantidade em stake.
+
+**Caso de uso:** Um dApp fornece uma interface simples para os usuários fazerem stake de 100 STX.
+
+```python
+# Exemplo em Python
+from stacks_pay import encode_stacks_pay_url
+
+# 100 STX em micro-STX
+staking_amount_ustx = str(100 * 1_000_000)
+staking_contract = "SP...staking-protocol"
+
+def create_staking_link():
+    try:
+        staking_url = encode_stacks_pay_url({
+            "operation": "mint",
+            "contractAddress": staking_contract,
+            "functionName": "stake",
+            "amount": staking_amount_ustx,
+            "token": "STX",
+            "description": "Fazer stake de 100 STX no protocolo."
+        })
+        return staking_url
+    except Exception as e:
+        print(f"Erro: {e}")
+        return None
+
+print(create_staking_link())
+```
+
+Quando o usuário clica neste link, sua carteira solicitará que ele aprove uma chamada para a função `stake` no contrato `staking-protocol`, transferindo 100 STX.
+
+## Segurança e Experiência do Usuário
+
+- **Clareza é fundamental:** As carteiras que implementam o StacksPay exibirão claramente o `contractAddress` e o `functionName` para o usuário antes que ele aprove a transação. Essa transparência é fundamental para a segurança.
+- **Contratos confiáveis:** Instrua os usuários a aprovar apenas interações com contratos em que confiam.
+- **Sem argumentos de função:** A especificação atual não suporta a codificação de argumentos de função na URL. Esta é uma escolha deliberada para manter a versão inicial simples e segura. Os argumentos devem ser tratados pela lógica do aplicativo fora da própria URL do StacksPay.
+
+## Quando Usar `mint` vs. `invoice`
+
+- Use **`invoice`** para pagamentos simples a outro usuário ou a um comerciante por bens ou serviços fora da cadeia. O pagamento vai diretamente de uma conta para outra.
+- Use **`mint`** (como uma chamada de contrato) quando o pagamento precisar ser processado por um programa on-chain. O pagamento vai para um contrato inteligente, que então executa o código.

@@ -1,0 +1,217 @@
+---
+title: URI Scheme
+description: Complete specification of StacksPay URI encoding and decoding using Bech32m.
+---
+
+# URI Scheme
+
+StacksPay uses a structured approach to encode payment information into shareable URLs using Bech32m encoding for data integrity and cross-platform compatibility.
+
+## URI Structure
+
+### Complete URI Format
+```
+web+stx:stxpay1<bech32m-encoded-data>
+```
+
+**Components:**
+- **Protocol scheme**: `web+stx:`
+- **Human-readable part**: `stxpay`
+- **Encoded data**: Bech32m-encoded query string
+
+### Data Format
+
+Before encoding, payment information is structured as URL query parameters:
+```
+<operation>?<parameter1>=<value1>&<parameter2>=<value2>...
+```
+
+**Example:**
+```
+invoice?recipient=SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS&token=STX&amount=1000000&description=Coffee%20purchase
+```
+
+## Encoding Process
+
+### Step 1: Query String Assembly
+
+Parameters are assembled as URL query parameters according to operation-specific requirements:
+
+```
+<operation>?<parameter1>=<value1>&<parameter2>=<value2>...
+```
+
+### Step 2: Bech32m Encoding
+
+The complete query string is encoded using Bech32m with:
+- **Human-readable part (HRP)**: `stxpay`
+- **Encoding limit**: 512 characters
+- **Checksum**: Built-in error detection
+
+**Result format:**
+```
+stxpay1<encoded-data-with-checksum>
+```
+
+### Step 3: Protocol Prefix
+
+Add the protocol scheme to create the final shareable URL:
+```
+web+stx:stxpay1<encoded-data-with-checksum>
+```
+
+## Decoding Process
+
+### Step 1: Protocol Validation
+
+Verify the URL starts with `web+stx:` and extract the encoded portion.
+
+### Step 2: Bech32m Decoding
+
+Decode using the expected HRP `stxpay`:
+- Validate checksum
+- Extract original data
+- Handle encoding errors
+
+### Step 3: Parameter Parsing
+
+Parse the resulting query string to extract operation and parameters:
+- Split on `?` to separate operation from parameters
+- Parse URL-encoded parameter pairs
+- Validate required parameters for operation type
+
+## Encoding Requirements
+
+### MUST Requirements
+
+Implementations **MUST**:
+- Use Bech32m encoding with HRP set to `stxpay`
+- Validate checksums during decoding
+- Support both uppercase and lowercase encoded strings
+- Reject URLs with invalid Bech32m encoding
+- Reject URLs with incorrect HRP
+- Validate all required parameters for the specified operation
+
+### SHOULD Requirements
+
+Implementations **SHOULD**:
+- Use uppercase for QR code generation for better scanning reliability
+- Use lowercase for text-based sharing
+- Provide meaningful error messages for common mistakes
+
+### MAY Requirements
+
+Implementations **MAY**:
+- Support visual formatting (spaces/line breaks) in long encoded strings for readability
+- Provide error correction suggestions for malformed URLs
+
+## Protocol Scheme Rationale
+
+### Why `web+stx:`?
+
+The `web+stx` protocol scheme sets the stage for future Stacks protocols that serve different needs, but could each be easily identified as 'Stacks' protocols by the use of a common scheme.
+
+**Examples:**
+- `web+stx:stxpay.....` ← StacksPay URI
+- `web+stx:stxfoo....` ← Future StacksFoo URI
+- `web+stx:stxbar....` ← Future StacksBar URI
+
+### Why `stxpay` as HRP?
+
+When writing out the un-encoded URI, `stxpay` indicates that this is a StacksPay URI, making it easily identifiable and debuggable.
+
+## Error Handling
+
+### Required Error Cases
+
+Decoders **MUST** handle the following error cases:
+
+1. **Invalid protocol prefix**: URL doesn't start with `web+stx:`
+2. **Malformed Bech32m encoding**: Invalid characters or structure
+3. **Incorrect HRP**: Expected `stxpay` but found different value
+4. **Checksum validation failure**: Data corruption detected
+5. **Missing required parameters**: Operation missing mandatory fields
+6. **Invalid parameter values**: Type validation failures
+
+### Error Response Guidelines
+
+- **Be specific**: Indicate exactly what validation failed
+- **Be helpful**: Suggest corrections when possible
+- **Be secure**: Don't expose sensitive debugging information
+- **Be consistent**: Use standardized error codes across implementations
+
+## Examples
+
+### Support Operation
+
+**Original query string:**
+```
+support?recipient=SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS&description=Tip%20for%20great%20content
+```
+
+**Bech32m encoded:**
+```
+stxpay1qpzgk5q8getf3ts3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq6x2cvn4dahx2mrvd9xycr6ve5...
+```
+
+**Final URI:**
+```
+web+stx:stxpay1qpzgk5q8getf3ts3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq6x2cvn4dahx2mrvd9xycr6ve5...
+```
+
+### Invoice Operation
+
+**Original query string:**
+```
+invoice?recipient=SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS&token=STX&amount=1000000&description=Coffee%20purchase&invoiceNumber=INV-001
+```
+
+**Bech32m encoded:**
+```
+stxpay1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq5g5tnyv9xx6myvf5hgurjd4hhq...
+```
+
+**Final URI:**
+```
+web+stx:stxpay1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq5g5tnyv9xx6myvf5hgurjd4hhq...
+```
+
+### Mint Operation
+
+**Original query string:**
+```
+mint?contractAddress=SP123...my-nft-collection&functionName=claim&token=STX&amount=500000&description=Mint%20NFT%20%231234
+```
+
+**Bech32m encoded:**
+```
+stxpay1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq5g5tnyv9xx6myvf5hgurjd4hhq...
+```
+
+**Final URI:**
+```
+web+stx:stxpay1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq5g5tnyv9xx6myvf5hgurjd4hhq...
+```
+
+## Integration Considerations
+
+### QR Code Generation
+
+- Use **uppercase** encoding for better scanning reliability
+- Include adequate quiet zones
+- Test with multiple QR code readers
+- Consider URL length limits for QR code density
+
+### Text-based Sharing
+
+- Use **lowercase** encoding for better readability
+- Consider line breaks for very long URLs
+- Provide copy-to-clipboard functionality
+- Test with various messaging platforms
+
+### URL Handling
+
+- Register protocol handler for `web+stx:` scheme
+- Implement fallback for unsupported platforms
+- Validate URLs before attempting to decode
+- Provide clear error messages for malformed URLs

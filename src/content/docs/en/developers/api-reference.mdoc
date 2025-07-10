@@ -1,0 +1,471 @@
+---
+title: API Reference
+description: Complete API reference for StacksPay developers.
+---
+
+Complete API reference for all StacksPay operations, parameters, and data structures. This reference serves as the canonical documentation for the StacksPay protocol (SIP-029).
+
+## Protocol Overview
+
+StacksPay is a URL-based payment-request standard for the Stacks blockchain. It defines:
+
+- **URI Scheme**: `web+stx:` protocol with Bech32m-encoded payloads
+- **Operations**: Three primary operations (`support`, `invoice`, `mint`) plus custom operations
+- **Encoding**: Bech32m encoding with human-readable part `stxpay`
+- **Compatibility**: Works with any Stacks-compatible wallet
+
+## URL Structure
+
+### Protocol Format
+
+```
+web+stx:stxpay1[bech32m-encoded-query-string]
+```
+
+### Encoding Process
+
+1. **Query String Assembly**: `operation?param1=value1&param2=value2...`
+2. **Bech32m Encoding**: Encode with HRP `stxpay`
+3. **Protocol Prefix**: Add `web+stx:` scheme
+
+### Example
+
+```
+Original: invoice?recipient=SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS&token=STX&amount=1000000
+Encoded:  stxpay1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq5g5tnyv9xx6myvf5hgurjd4hhq
+Final:    web+stx:stxpay1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw4tcy8w6tpdf5qq5g5tnyv9xx6myvf5hgurjd4hhq
+```
+
+## Common Parameters
+
+### Parameter Types
+
+| Parameter | Type | Format | Description |
+|-----------|------|--------|-------------|
+| `operation` | string | `support\|invoice\|mint\|custom:*` | Payment operation type |
+| `recipient` | string | Stacks c32-address | Address that receives the payment |
+| `token` | string | `STX` or SIP-010 contract | Asset type (defaults to `STX`) |
+| `amount` | string | integer (base units) | Amount in µSTX or token base units |
+| `description` | string | UTF-8 | Human-readable payment context |
+| `expiresAt` | string | ISO-8601 datetime (UTC) | Payment expiration timestamp |
+| `invoiceNumber` | string | free-form | Merchant reference identifier |
+| `dueDate` | string | ISO-8601 date | Informational due date |
+| `contractAddress` | string | `SP....<contract>` | Smart contract for mint operations |
+| `functionName` | string | identifier | Contract function to invoke |
+| `memo` | string | UTF-8 | On-chain memo (use carefully) |
+
+### Parameter Validation Rules
+
+- **Addresses**: Must be valid Stacks c32-format addresses
+- **Amounts**: Must be positive integer strings (no decimals)
+- **Dates**: Must be valid ISO-8601 format
+- **URLs**: Must properly encode special characters
+- **Length**: Total encoded URL must not exceed 512 characters
+
+## Operations
+
+### Support Operation
+
+Variable-amount payments where the payer chooses the amount.
+
+**Use cases**: Tips, donations, "pay what you want" payments
+
+#### Required Parameters
+- `operation`: `"support"`
+- `recipient`: Stacks address
+
+#### Optional Parameters  
+- `token`: Asset type (default: `"STX"`)
+- `description`: Payment description
+- `expiresAt`: Expiration timestamp
+- `memo`: On-chain memo
+
+#### Wallet Behavior
+- **MUST** prompt user for amount
+- **MAY** allow token override
+- **MUST** validate recipient address
+- **SHOULD** display description prominently
+
+#### Example
+```typescript
+{
+  operation: 'support',
+  recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+  description: 'Support independent journalism',
+  token: 'STX'
+}
+```
+
+### Invoice Operation
+
+Fixed-amount payments for specific goods or services.
+
+**Use cases**: Product purchases, service payments, bills
+
+#### Required Parameters
+- `operation`: `"invoice"`
+- `recipient`: Stacks address
+- `token`: Asset type
+- `amount`: Payment amount (base units)
+
+#### Optional Parameters
+- `description`: Payment description
+- `expiresAt`: Expiration timestamp
+- `invoiceNumber`: Merchant reference
+- `dueDate`: Payment due date
+- `memo`: On-chain memo
+
+#### Wallet Behavior
+- **MUST** pre-fill amount (read-only by default)
+- **MUST** refuse expired payments
+- **MAY** allow amount editing if user explicitly requests
+- **SHOULD** validate all parameters
+
+#### Example
+```typescript
+{
+  operation: 'invoice',
+  recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+  token: 'STX',
+  amount: '2500000', // 2.5 STX
+  description: 'Monthly subscription',
+  invoiceNumber: 'INV-2024-001',
+  expiresAt: '2024-12-31T23:59:59.000Z'
+}
+```
+
+### Mint Operation
+
+Initiates a `contract-call` transaction to a specified smart contract function. While commonly used for NFT minting, this is a general-purpose operation for any on-chain action that requires a payment to a contract.
+
+For a detailed guide, see [Smart Contract Payments](./contract-payments.mdx).
+
+**Use cases**: NFT minting, token claiming, service fee payments, DeFi staking.
+
+#### Required Parameters
+- `operation`: `"mint"`
+- `contractAddress`: Contract principal and name
+- `functionName`: Contract function (default: `"claim"`)
+- `amount`: Payment amount (may be zero)
+- `token`: Payment asset
+
+#### Optional Parameters
+- `description`: Mint description
+- `expiresAt`: Expiration timestamp
+- `memo`: On-chain memo
+
+#### Wallet Behavior
+- **MUST** call specified contract function
+- **MUST** use active wallet address as receiver
+- **MAY** allow zero-amount transactions
+- **SHOULD** validate contract exists
+
+#### Example
+```typescript
+{
+  operation: 'mint',
+  contractAddress: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS.my-nft-collection',
+  functionName: 'claim',
+  token: 'STX',
+  amount: '500000', // 0.5 STX mint price
+  description: 'Mint NFT #1234'
+}
+```
+
+### Custom Operations
+
+Application-specific operations with vendor prefixes.
+
+**Use cases**: Subscriptions, swaps, custom DeFi interactions
+
+#### Format
+- Operation name: `custom:*` (e.g., `custom:subscription`)
+- Parameters: Application-defined
+- Validation: Minimal (operation name only)
+
+#### Wallet Behavior
+- **SHOULD** warn user about unknown operation
+- **MAY** refuse to process
+- **SHOULD** fall back to safe defaults
+
+#### Example
+```typescript
+{
+  operation: 'custom:subscription',
+  recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+  amount: '5000000',
+  description: 'Monthly subscription',
+  subscriptionId: 'sub_123',
+  billingCycle: 'monthly'
+}
+```
+
+## Token Specifications
+
+### STX (Native Token)
+
+- **Symbol**: `STX`
+- **Base Unit**: micro-STX (µSTX)
+- **Conversion**: 1 STX = 1,000,000 µSTX
+- **Format**: Integer string in µSTX
+
+```typescript
+// Examples
+'1000000'   // 1 STX
+'500000'    // 0.5 STX
+'1'         // 0.000001 STX
+```
+
+### SIP-010 Tokens
+
+- **Format**: `CONTRACT_PRINCIPAL.CONTRACT_NAME`
+- **Base Unit**: 10^decimals (from contract)
+- **Amount**: Integer string in base units
+
+```typescript
+// Example token with 6 decimals
+{
+  token: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS.my-token',
+  amount: '1000000' // 1 token (6 decimals)
+}
+```
+
+### Amount Conversion Helpers
+
+```typescript
+// STX conversions
+function stxToMicroStx(stx: number): string {
+  return (stx * 1_000_000).toString();
+}
+
+function microStxToStx(microStx: string): number {
+  return parseInt(microStx) / 1_000_000;
+}
+
+// SIP-010 conversions
+function tokenToBaseUnit(amount: number, decimals: number): string {
+  return (amount * Math.pow(10, decimals)).toString();
+}
+
+function baseUnitToToken(baseUnit: string, decimals: number): number {
+  return parseInt(baseUnit) / Math.pow(10, decimals);
+}
+```
+
+## Address Formats
+
+### Stacks Addresses
+
+StacksPay uses Stacks c32-encoded addresses:
+
+- **Mainnet**: Starts with `SP` or `SM`
+- **Testnet**: Starts with `ST` or `SN`
+- **Format**: 41 characters, Base58Check-like encoding
+
+```typescript
+// Valid address examples
+'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS'  // Mainnet standard
+'SM2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS'  // Mainnet multisig
+'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'  // Testnet standard
+```
+
+### Contract Addresses
+
+For mint operations, use full contract specification:
+
+```typescript
+// Format: PRINCIPAL.CONTRACT_NAME
+'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS.my-nft-collection'
+```
+
+## Error Handling
+
+### Error Categories
+
+#### Encoding Errors
+- **INVALID_OPERATION**: Unknown or malformed operation
+- **INVALID_ADDRESS**: Invalid Stacks address format
+- **INVALID_AMOUNT**: Non-integer or negative amount
+- **MISSING_REQUIRED_PARAM**: Required parameter not provided
+- **ENCODING_FAILED**: Bech32m encoding failed
+
+#### Decoding Errors
+- **INVALID_PROTOCOL**: URL doesn't start with `web+stx:`
+- **INVALID_BECH32M**: Malformed Bech32m encoding
+- **INVALID_HRP**: Human-readable part is not `stxpay`
+- **DECODING_FAILED**: Cannot decode query string
+
+#### Validation Errors
+- **EXPIRED_PAYMENT**: Payment has expired
+- **UNSUPPORTED_TOKEN**: Token not supported by wallet
+- **AMOUNT_TOO_LARGE**: Amount exceeds reasonable limits
+- **INVALID_CONTRACT**: Contract doesn't exist or invalid
+
+### Error Response Format
+
+```typescript
+interface StacksPayError {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
+}
+
+// Example error
+{
+  code: 'INVALID_ADDRESS',
+  message: 'Invalid Stacks address format',
+  details: {
+    address: 'invalid-address',
+    expected: 'c32-encoded Stacks address'
+  }
+}
+```
+
+## Security Considerations
+
+### Parameter Validation
+
+All implementations MUST:
+- Validate address formats before processing
+- Check amount bounds and format
+- Verify expiration timestamps
+- Sanitize description text
+- Validate contract addresses for mint operations
+
+### Memo Privacy
+
+- Memos are stored on-chain permanently
+- MUST NOT include sensitive information
+- Wallets SHOULD warn users about memo visibility
+- Consider using IPFS hashes for large data
+
+### Post-Conditions
+
+Wallets SHOULD implement post-conditions to:
+- Limit maximum transfer amounts
+- Verify recipient addresses
+- Prevent unexpected contract calls
+- Validate token types
+
+For further research, developers should consult the official [Clarity post-conditions documentation](https://docs.stacks.co/docs/clarity/post-conditions).
+
+### Example Post-Condition
+
+```typescript
+// TypeScript example with @stacks/transactions
+import { PostConditionMode, makeStandardSTXPostCondition } from '@stacks/transactions';
+
+const postCondition = makeStandardSTXPostCondition(
+  senderAddress,
+  FungibleConditionCode.Equal,
+  BigInt(amount)
+);
+```
+
+## Implementation Requirements
+
+### Wallet Requirements (MUST)
+
+1. **Protocol Support**: Handle `web+stx:` URLs and QR codes
+2. **Decoding**: Properly decode Bech32m with `stxpay` HRP
+3. **Validation**: Validate all parameters before display
+4. **Expiration**: Enforce `expiresAt` timestamps
+5. **Defaults**: Use `STX` when token parameter omitted
+6. **Error Handling**: Gracefully handle unknown parameters
+
+### Merchant Requirements (SHOULD)
+
+1. **Generation**: Create URLs server-side or via libraries
+2. **Display**: Provide both QR codes and clickable links
+3. **Expiration**: Set reasonable expiration times
+4. **Validation**: Validate parameters before encoding
+5. **Error Recovery**: Handle encoding failures gracefully
+
+### Library Requirements (MUST)
+
+1. **Encoding**: Implement correct Bech32m encoding
+2. **Validation**: Validate all parameters
+3. **Error Handling**: Provide meaningful error messages
+4. **Documentation**: Include usage examples
+5. **Testing**: Comprehensive test coverage
+
+## Compatibility
+
+### Network Support
+
+- **Mainnet**: Primary deployment target
+- **Testnet**: Development and testing
+- **Future Networks**: Forward-compatible design
+
+### Wallet Compatibility
+
+StacksPay is designed to work with any Stacks wallet that implements:
+- Stacks transaction signing
+- c32 address handling
+- SIP-010 token support (for token payments)
+
+### Browser Support
+
+URLs work in all modern browsers:
+- Chrome 88+
+- Firefox 85+
+- Safari 14+
+- Edge 88+
+
+## Reference Implementations
+
+### Official Libraries
+
+| Language | Repository | Package |
+|----------|------------|---------|
+| TypeScript | [stacks-pay-js](https://github.com/dantrevino/stacks-pay-js) | `stacks-pay` |
+| Python | [stacks-pay-py](https://github.com/dantrevino/stacks-pay-py) | `stacks-pay` |
+| Rust | [stacks-pay-rs](https://github.com/dantrevino/stacks-pay-rs) | `stacks-pay` |
+
+### Test Vectors
+
+```typescript
+// Standard test cases for implementation validation
+const testVectors = [
+  {
+    name: 'STX Invoice',
+    params: {
+      operation: 'invoice',
+      recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+      token: 'STX',
+      amount: '1000000',
+      description: 'Test payment'
+    },
+    encoded: 'web+stx:stxpay1...' // Full encoded URL
+  },
+  {
+    name: 'Support Link',
+    params: {
+      operation: 'support',
+      recipient: 'SP2RTE7F21N6GQ6BBZR7JGGRWAT0T5Q3Z9ZHB9KRS',
+      description: 'Tip jar'
+    },
+    encoded: 'web+stx:stxpay1...'
+  }
+  // Additional test cases...
+];
+```
+
+## Future Extensions
+
+### Planned Features
+
+- **Multi-recipient payments**: Split payments across multiple addresses
+- **Conditional payments**: Payments with smart contract conditions
+- **Recurring payments**: Subscription-style payment flows
+- **Payment channels**: Lightning-style payment channels
+
+### Backward Compatibility
+
+Future extensions will maintain backward compatibility by:
+- Adding new optional parameters
+- Using semantic versioning
+- Requiring wallets to ignore unknown parameters
+- Providing migration paths for major changes
+
+Ready to implement? Start with the Quick Start guide for basic integration, or dive into the Examples section for real-world implementation patterns.

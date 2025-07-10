@@ -1,0 +1,86 @@
+---
+title: Protocol Overview
+description: Technical overview of the StacksPay protocol architecture and design principles.
+---
+
+# Protocol Overview
+
+**StacksPay** is a URL-based payment-request standard for the Stacks blockchain that enables wallet-agnostic payment interoperability through standardized URI encoding.
+
+## Abstract
+
+StacksPay defines a URL-based payment-request format for the Stacks blockchain. By standardizing how payment information is encoded, decoded, and displayed, it guarantees that any wallet or application implementing this specification can interoperate with any other.
+
+StacksPay is *purely* an application-layer standard: it introduces **no** changes to consensus, token emission, or on-chain data structures. Think of it as a shareable wrapper around an ordinary Stacks transaction.
+
+## Key Design Principles
+
+### 1. Universal Interoperability
+- **Single URI scheme** (`web+stx://`) with Bech32m payloads
+- **Wallet-agnostic** - works with any compliant Stacks wallet
+- **Cross-platform** - compatible with web, mobile, and desktop applications
+
+### 2. Structured Operations
+- **Small set of operations** (`support`, `invoice`, `mint`)
+- **Exact parameter specification** for every operation
+- **Forward compatibility** - wallets ignore unknown parameters
+
+### 3. Application Layer Focus
+- **No consensus changes** - purely application-layer implementation
+- **Transaction wrapper** - standardizes how payment data is shared
+- **Blockchain agnostic encoding** - can be adapted for other blockchains
+
+## Problem Solved
+
+Payment URIs already exist in Bitcoin (BIP-21), Lightning (BOLT-11/12) and Ethereum (EIP-681). Stacks lacked a comparable, wallet-agnostic standard. Without one, merchants, DApps, and wallets invent ad-hoc query strings that break as soon as a new field appears.
+
+## Architecture Components
+
+### URI Scheme
+- **Protocol**: `web+stx:`
+- **Encoding**: Bech32m with HRP `stxpay`
+- **Data Format**: URL query parameters
+
+### Operations
+- **Support**: User-specified donation amounts
+- **Invoice**: Fixed-amount payment requests
+- **Mint**: NFT/token minting with contract calls
+- **Custom**: Vendor-specific operations with `custom:` prefix
+
+### Token Support
+- **STX**: Native Stacks token (amounts in micro-STX)
+- **SIP-010**: Fungible token standard compliance
+- **Base units**: All amounts specified in smallest token unit
+
+## Integration Benefits
+
+### For Developers
+- **Simple integration**: 3-10 lines of code vs 50-100+ for traditional crypto payments
+- **No blockchain expertise required**: Generate URLs without understanding smart contracts
+- **Universal compatibility**: Works with any application that can generate URLs or QR codes
+
+### For Users
+- **One-click payments**: Tap to open wallet with pre-filled transaction
+- **Social media friendly**: Share payment requests via any communication channel
+- **Mobile-first**: Optimized for mobile wallet scanning
+
+### For Merchants
+- **Reduced complexity**: No need for custom wallet integrations
+- **Offline generation**: Create payment requests without blockchain connection
+- **Error reduction**: Standardized format eliminates custom implementation bugs
+
+## Economic Impact
+
+StacksPay does not alter consensus rules or tokenomics; however, easier payments may increase:
+- Transaction throughput
+- Miner fees
+- Utility of STX and SIP-010 assets
+- Overall ecosystem adoption
+
+## Related Standards
+
+- **SIP-010**: Fungible Token Standard
+- **BIP-21**: Bitcoin URI scheme
+- **BOLT-11/12**: Lightning Network invoices
+- **EIP-681**: Ethereum payment URIs
+- **RFC 2119**: Key words for requirement levels

@@ -1,0 +1,116 @@
+---
+title: Testes e Depuração
+description: Teste e depure sua integração com o StacksPay de forma eficaz.
+---
+
+# Testes e Depuração
+
+Testes eficazes são cruciais para garantir que sua integração com o StacksPay seja confiável, segura e proporcione uma boa experiência ao usuário. Este guia abrange estratégias para testes unitários, testes de ponta a ponta e depuração.
+
+## 1. Testes Unitários
+
+Os testes unitários devem se concentrar na lógica principal de sua integração: criar e validar URLs do StacksPay. Os SDKs oficiais são projetados para tornar isso simples.
+
+### Principais Áreas a Testar
+
+- **Codificação de URL:** Garanta que seu código gere URLs válidas corretamente para todas as operações (`invoice`, `support`, `mint`).
+- **Validação de Parâmetros:** Teste se a lógica do seu aplicativo valida corretamente as entradas (por exemplo, endereços Stacks, quantias) antes de passá-las para o SDK.
+- **Conversão de Quantia:** Verifique se as conversões entre quantias legíveis por humanos (por exemplo, 1.5 STX) e unidades base (por exemplo, 1,500,000 µSTX) são precisas.
+- **Tratamento de Erros:** Teste como seu código se comporta quando o SDK lança um erro (por exemplo, para um endereço de destinatário inválido).
+
+### Exemplo: Testes Unitários com Jest (TypeScript)
+
+```typescript
+// src/payment-generator.test.ts
+import { encodeStacksPayURL, decodeStacksPayURL, StacksPayError } from 'stacks-pay';
+import { stxToMicroStx } from '@stacks/transactions';
+
+// Uma função simplificada para testar
+function createInvoice(recipient: string, amountStx: number) {
+  if (amountStx <= 0) {
+    throw new Error('A quantia deve ser positiva');
+  }
+  return encodeStacksPayURL({
+    operation: 'invoice',
+    recipient,
+    token: 'STX',
+    amount: stxToMicroStx(amountStx).toString(),
+  });
+}
+
+describe('Gerador de Pagamentos', () => {
+  const testnetAddress = 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';
+
+  test('deve criar uma URL de fatura válida', () => {
+    const url = createInvoice(testnetAddress, 10);
+    expect(url).toMatch(/^web\+stx:stxpay1/);
+
+    const decoded = decodeStacksPayURL(url);
+    expect(decoded.operation).toBe('invoice');
+    expect(decoded.recipient).toBe(testnetAddress);
+    expect(decoded.amount).toBe('10000000'); // 10 STX em µSTX
+  });
+
+  test('deve lançar um erro para um endereço inválido', () => {
+    // O SDK lançará um StacksPayError
+    expect(() => createInvoice('invalid-address', 10)).toThrow(StacksPayError);
+    expect(() => createInvoice('invalid-address', 10)).toThrow('Formato de endereço Stacks inválido');
+  });
+
+  test('deve lançar um erro personalizado para uma quantia não positiva', () => {
+    // Sua própria lógica de validação
+    expect(() => createInvoice(testnetAddress, 0)).toThrow('A quantia deve ser positiva');
+  });
+});
+```
+
+## 2. Testes de Ponta a Ponta (E2E)
+
+Os testes E2E simulam uma jornada real do usuário. Para o StacksPay, isso significa gerar uma URL e testar o fluxo de pagamento com uma carteira real na **Testnet da Stacks**.
+
+### Fluxo de Teste E2E Manual
+
+1.  **Configuração:**
+    *   Execute seu aplicativo localmente.
+    *   Obtenha uma carteira da Testnet da Stacks (como Leather ou Xverse) financiada com STX da Testnet de uma [torneira](https://explorer.hiro.so/sandbox/faucet?chain=testnet).
+
+2.  **Gerar URL:**
+    *   Use seu aplicativo para gerar uma URL do StacksPay com um **endereço de destinatário da Testnet**.
+    *   Exiba a URL como um link clicável e um código QR.
+
+3.  **Testar Pagamento:**
+    *   **Clique no link:** Seu navegador deve solicitar a abertura de sua carteira.
+    *   **Escaneie o código QR:** Use o aplicativo móvel de sua carteira para escanear o código.
+
+4.  **Verificar na Carteira:**
+    *   Confirme se a carteira exibe os detalhes corretos: destinatário, quantia, token, descrição e memorando.
+    *   Verifique se a quantia é exibida em um formato legível por humanos (por exemplo, "10 STX").
+
+5.  **Transmitir e Confirmar:**
+    *   Aprove a transação em sua carteira.
+    *   Use o [Stacks Explorer](https://explorer.hiro.so/?chain=testnet) para encontrar a transação e verificar seus detalhes on-chain.
+
+### Testes E2E Automatizados
+
+Automatizar esse fluxo requer um framework de teste como Cypress ou Playwright que possa interagir com extensões de navegador, o que pode ser complexo. Para a maioria das equipes, os testes E2E manuais fornecem confiança suficiente.
+
+## 3. Depuração
+
+Quando as coisas dão errado, veja como depurar sua integração.
+
+### Problemas e Soluções Comuns
+
+| Problema | Sintoma | Solução |
+| :--- | :--- | :--- |
+| **URL Inválida** | A carteira rejeita o link ou o código QR, ou mostra um erro. | 1. **Decodifique Manualmente:** Use a função `decodeStacksPayURL` do SDK para inspecionar os parâmetros gerados. <br> 2. **Verifique a Codificação:** Garanta que nenhum caractere especial esteja sendo codificado duas vezes. O SDK lida com isso, então passe strings brutas. <br> 3. **Valide as Entradas:** Registre os parâmetros que você passa para `encodeStacksPayURL` para garantir que eles estejam corretos *antes* da codificação. |
+| **Quantia Incorreta** | A carteira mostra uma quantia minúscula ou enorme (por exemplo, 0.000010 STX em vez de 10 STX). | Você provavelmente está passando uma quantia legível por humanos (por exemplo, `"10"`) em vez da quantia da unidade base necessária (por exemplo, `"10000000"`). Use um auxiliar como `stxToMicroStx` para converter a quantia primeiro. |
+| **Pagamento Expirado** | A carteira mostra uma mensagem de erro "Expirado". | 1. **Verifique `expiresAt`:** Garanta que o timestamp ISO-8601 esteja correto e em UTC. <br> 2. **Hora do Servidor:** Verifique se o relógio do seu servidor está sincronizado. <br> 3. **Problemas de Fuso Horário:** Sempre gere o timestamp `expiresAt` em UTC para evitar confusão de fuso horário. |
+| **Falha na Transação** | A transação é transmitida, mas falha on-chain. | 1. **Verifique as Pós-Condições:** A carteira adiciona pós-condições automaticamente. Se o destinatário ou a quantia estiverem errados, a transação será abortada. <br> 2. **Erros de Contrato (`mint`):** Para operações `mint`, o contrato inteligente de destino pode ter sua própria lógica que causa uma falha (por exemplo, a cunhagem terminou, o usuário não está na lista de permissões). Verifique o contrato no explorador. |
+
+### Usando o Stacks Explorer
+
+O [Stacks Explorer](https://explorer.hiro.so) é sua ferramenta de depuração mais poderosa. Você pode:
+
+- **Inspecionar Transações:** Visualizar os parâmetros exatos de uma transação concluída ou com falha.
+- **Verificar Saldos:** Confirmar que os fundos foram transferidos corretamente.
+- **Ler Contratos:** Para operações `mint`, você pode inspecionar o código e o estado do contrato de destino.
