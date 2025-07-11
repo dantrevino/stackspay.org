@@ -248,7 +248,7 @@ Operações específicas de aplicativos com prefixos de fornecedor.
 ### Funções Auxiliares de Conversão de Quantia
 
 ```typescript
-// Conversões de STX
+// Convert STX
 function stxToMicroStx(stx: number): string {
   return (stx * 1_000_000).toString();
 }
@@ -257,7 +257,7 @@ function microStxToStx(microStx: string): number {
   return parseInt(microStx) / 1_000_000;
 }
 
-// Conversões de SIP-010
+// Convert SIP-010
 function tokenToBaseUnit(amount: number, decimals: number): string {
   return (amount * Math.pow(10, decimals)).toString();
 }
@@ -331,10 +331,10 @@ interface StacksPayError {
 // Exemplo de erro
 {
   code: 'INVALID_ADDRESS',
-  message: 'Formato de endereço Stacks inválido',
+  message: 'Formato de enderezo Stacks invalido',
   details: {
     address: 'invalid-address',
-    expected: 'endereço Stacks codificado em c32'
+    expected: 'enderezo Stacks codificado em c32'
   }
 }
 ```
