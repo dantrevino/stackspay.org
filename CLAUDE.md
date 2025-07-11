@@ -11,7 +11,7 @@ This is a **StacksPay documentation site** built with Astro and Starlight. It se
 - **Framework**: Astro 5.6.1 with Starlight documentation framework
 - **Content System**: Markdoc for rich documentation content with custom components
 - **Structure**: Multi-language documentation site with organized sections for different user types
-- **Content Location**: All documentation files are in `src/content/docs/` organized by language (en, de, es, fr, pt, pt-BR)
+- **Content Location**: All documentation files are in `src/content/docs/` organized by language (en, de, es, fr, pt, pt-br)
 
 ## Key Commands
 
@@ -62,6 +62,6 @@ The documentation supports multiple languages with content organized in language
 - `es/` - Spanish  
 - `fr/` - French
 - `pt/` - Portuguese
-- `pt-BR/` - Brazilian Portuguese
+- `pt-br/` - Brazilian Portuguese
 
 When adding new content, ensure translations are added to all relevant language folders to maintain consistency across the documentation.

@@ -8,7 +8,10 @@ export default defineConfig({
   integrations: [
     markdoc(),
     starlight({
-      title: 'StacksPay',
+      title: {
+        en: 'StacksPay',
+        'pt-BR': 'StacksPay'
+      },
       defaultLocale: 'en',
       locales: {
         en: {
